@@ -28,7 +28,7 @@ ExternalProject_Add(
 link_directories(${CMAKE_CURRENT_BINARY_DIR}/deps/lib)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/deps/include)
 
-add_executable(ccpkg main.c)
+add_executable(ccpkg main.c utils.c lib.c)
 add_dependencies(ccpkg lua curl)
 
 target_link_libraries(
@@ -39,3 +39,10 @@ target_link_libraries(
     m
     dl
 )
+
+if (LINUX OR UNIX)
+    target_compile_definitions(
+        ccpkg
+        PRIVATE LINUX
+    )
+endif()
