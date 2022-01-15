@@ -1,5 +1,7 @@
 {
   "files.associations": {
-    "lua.hpp": "c"
+    "lua.hpp": "c",
+    "stdio.h": "c",
+    "cstring": "c"
   }
 }
