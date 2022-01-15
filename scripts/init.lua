@@ -28,8 +28,12 @@ end
 ccpkg.root_dir = os.getenv("CCPKG_ROOT")
 ccpkg.project_dir = ccpkg.getcwd()
 ccpkg.chdir(os.path_join(ccpkg.root_dir, 'scripts'))
+ccpkg.path_sep = '/'
+if string.find(ccpkg.root_dir, '.:\\') ~= nil then
+  ccpkg.path_sep = '\\'
+end
 
-package.path = '?.lua;?/init.lua'
+package.path = '?.lua;?' .. ccpkg.path_sep .. 'init.lua'
 local argparse = require('3rdparty.argparse')
 local parser = argparse("ccpkg", "An example.")
 

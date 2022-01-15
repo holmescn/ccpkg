@@ -10,7 +10,9 @@
 #include <string.h>
 #include <unistd.h>
 
-static int ccpkg_getcwd(lua_State *L) {
+#define ENV_CCPKG_ROOT "CCPKG_ROOT"
+
+static int ccpkg_currentdir(lua_State *L) {
   char path[1024];
   if (getcwd(path, sizeof(path)) == NULL) {
     lua_pushstring(L, "<unknown>");
@@ -34,8 +36,10 @@ static int ccpkg_chdir(lua_State *L) {
 
 static const luaL_Reg ccpkglib[] = {
   { "chdir", ccpkg_chdir },
-  { "getcwd", ccpkg_getcwd },
+  { "currentdir", ccpkg_currentdir },
   /* placeholders */
+  { "root_dir", NULL },
+  { "project_dir", NULL },
   { NULL, NULL }
 };
 
@@ -44,5 +48,9 @@ static const luaL_Reg ccpkglib[] = {
 */
 LUAMOD_API int luaopen_ccpkg (lua_State *L) {
   luaL_newlib(L, ccpkglib);
+  lua_pushstring(L, getenv(ENV_CCPKG_ROOT));
+  lua_setfield(L, -2, "root_dir");
+  ccpkg_currentdir(L);
+  lua_setfield(L, -2, "project_dir");
   return 1;
 }
