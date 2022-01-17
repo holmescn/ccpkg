@@ -4,17 +4,12 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}/**",
-                "${vcpkgRoot}/arm-android/include",
-                "${vcpkgRoot}/arm64-android/include",
-                "${vcpkgRoot}/x64-android/include",
-                "${vcpkgRoot}/x64-linux/include",
-                "${vcpkgRoot}/x86-android/include",
                 "/usr/include/lua5.3"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/clang",
             "cStandard": "c11",
-            "cppStandard": "c++14",
+            "cppStandard": "c++17",
             "intelliSenseMode": "linux-clang-x64",
             "configurationProvider": "go2sh.cmake-integration"
         }

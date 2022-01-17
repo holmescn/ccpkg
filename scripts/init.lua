@@ -1,4 +1,5 @@
-function dump(o)
+-- keep for debug
+local function dump(o)
   if type(o) == 'table' then
      local s = '{ '
      for k,v in pairs(o) do
@@ -11,38 +12,30 @@ function dump(o)
   end
 end
 
-os.path_join = function (root, ...)
-  local sep = '/'
-  local p = root
-  local n_args = select("#", ...)
-  if string.find(root, '.:\\') ~= nil then
-    sep = '\\'
-  end
+-- extend package path to include scripts in CCPKG_ROOT_DIR
+package.path = os.path_join(CCPKG_ROOT_DIR, 'scripts', "?.lua;") .. package.path
+package.path = os.path_join(CCPKG_ROOT_DIR, 'scripts', '?', "init.lua;") .. package.path
+package.cpath = ''
 
-  for i = 1, n_args do
-    local arg = select(i, ...)
-    p = p .. sep .. arg
-  end
-  return p
-end
-ccpkg.root_dir = os.getenv("CCPKG_ROOT")
-ccpkg.project_dir = ccpkg.getcwd()
-ccpkg.chdir(os.path_join(ccpkg.root_dir, 'scripts'))
-ccpkg.path_sep = '/'
-if string.find(ccpkg.root_dir, '.:\\') ~= nil then
-  ccpkg.path_sep = '\\'
-end
-
-package.path = '?.lua;?' .. ccpkg.path_sep .. 'init.lua'
 local argparse = require('3rdparty.argparse')
 local parser = argparse("ccpkg", "An example.")
 
-parser:argument("input", "Input file.")
-parser:option("-o --output", "Output file.", "a.out")
-parser:option("-I --include", "Include locations."):count("*")
+-- init command create a project.lua in current dir
+parser:command("init")
+
+-- install dependencies described in project.lua
+parser:command("install")
 
 local args = parser:parse(ARGS)
 
-print(ccpkg.root_dir)
-print(ccpkg.project_dir)
+print("current dir", fs.currentdir())
+print("root dir", CCPKG_ROOT_DIR)
 print(dump(args))
+
+local dotccpkg = os.path_join(fs.currentdir(), ".ccpkg")
+fs.mkdirs(dotccpkg)
+if fs.exists(dotccpkg) then
+   print(string.format("%s is created", dotccpkg))
+end
+
+print(os.name)
