@@ -4,6 +4,7 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}/**",
+                "${vcpkgRoot}/x64-linux/include",
                 "/usr/include/lua5.3"
             ],
             "defines": [],

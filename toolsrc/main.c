@@ -10,6 +10,7 @@
 
 #define LUA_PROGNAME "ccpkg"
 
+LUALIB_API int f_os_run (lua_State *L);
 LUAMOD_API int luaopen_fs (lua_State *L);
 
 static const char *progname = LUA_PROGNAME;
@@ -40,7 +41,14 @@ static void createargtable (lua_State *L, int argc, char **argv) {
   lua_setglobal(L, "ARGS");
 }
 
-static int f_os_pathjoin(lua_State *L) {
+/**
+ * @brief Add os.path_join function
+ * 
+ * local path = path_join('/root/path', 'part1', 'part2')
+ * 
+ * @param L lua state
+ */
+static int f_path_join(lua_State *L) {
   char sep = '/', path[4096], *dst;
   int nargs = lua_gettop(L);
   const char *end = &path[4096], *src;
@@ -67,28 +75,14 @@ static int f_os_pathjoin(lua_State *L) {
   return 1;
 }
 
-static void ext_os_pathjoin(lua_State *L) {
-  lua_getglobal(L, "os");
-  lua_pushcfunction(L, f_os_pathjoin);
-  lua_setfield(L, -2, "path_join");
-  lua_pop(L, 1);
-}
-
-static void ext_os_name(lua_State *L) {
-  lua_getglobal(L, "os");
-
-#ifdef LUA_USE_POSIX
-  lua_pushstring(L, "posix");
-#elif defined(LUA_USE_WINDOWS)
-  lua_pushstring(L, "windows");
-#elif defined(LUA_USE_MACOSX)
-  lua_pushstring(L, "macos");
-#else
-  lua_pushstring(L, "unknown");
-#endif
-
-  lua_setfield(L, -2, "name");
-  lua_pop(L, lua_gettop(L));
+/**
+ * @brief guess OS name from environment
+ * 
+ * @return const char* 
+ */
+const char *guess_os(void) {
+  // TODO Guess OS name from environment
+  return "linux";
 }
 /* }================================================================== */
 
@@ -116,10 +110,24 @@ int main (int argc, char **argv) {
 
   lua_pushstring(L, ccpkg_root);
   lua_setglobal(L, "CCPKG_ROOT_DIR");
-  ext_os_pathjoin(L);
-  ext_os_name(L);
+
+  /* extend os module */
+  lua_getglobal(L, "os");
+  lua_pushstring(L, guess_os());
+  lua_setfield(L, -2, "name");
+  lua_pushcfunction(L, f_os_run);
+  lua_setfield(L, -2, "run");
+  lua_pop(L, lua_gettop(L));
+
+  lua_pushcfunction(L, f_path_join);
+  lua_setglobal(L, "path_join");
 
   createargtable(L, argc, argv);
+
+  if (luaL_dostring(L, "PROJECT_DIR = fs.currentdir()") != LUA_OK) {
+    fprintf(stderr, "%s\n", lua_tostring(L, lua_gettop(L)));
+    lua_pop(L, lua_gettop(L));
+  }
 
   snprintf(script, sizeof(script), "%s/scripts/init.lua", ccpkg_root);
   if (luaL_dofile(L, script) != LUA_OK) {

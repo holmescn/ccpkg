@@ -9,6 +9,8 @@ find_package(Lua REQUIRED)
 
 include_directories(${LUA_INCLUDE_DIR})
 
+option(DEV_MODE "development mode" OFF)
+
 add_library(fs STATIC lfs.cc)
 target_link_libraries(
   fs
@@ -17,18 +19,33 @@ target_link_libraries(
   ${LUA_LIBRARIES}
 )
 
-add_executable(ccpkg main.c)
-target_link_libraries(
-  ccpkg
+if (DEV_MODE)
+  find_package(Catch2 CONFIG REQUIRED)
 
-  PRIVATE
-  fs
-  ${LUA_LIBRARIES}
-)
+  add_executable(test_os_run tests/test_os_run.cc os_run.c)
+  target_link_libraries(
+    test_os_run
 
-#if (LINUX OR UNIX)
-#    target_compile_definitions(
-#        ccpkg
-#        PRIVATE LINUX
-#    )
-#endif()
+    PRIVATE
+    ${LUA_LIBRARIES}
+    Catch2::Catch2WithMain)
+  include(CTest)
+  include(Catch)
+  catch_discover_tests(test_os_run)
+else()
+  add_executable(ccpkg main.c os_run.c)
+  target_link_libraries(
+    ccpkg
+
+    PRIVATE
+    fs
+    ${LUA_LIBRARIES}
+  )
+
+  #if (LINUX OR UNIX)
+  #    target_compile_definitions(
+  #        ccpkg
+  #        PRIVATE LINUX
+  #    )
+  #endif()
+endif()
