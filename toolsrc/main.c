@@ -10,8 +10,10 @@
 
 #define LUA_PROGNAME "ccpkg"
 
-LUALIB_API int f_os_run (lua_State *L);
+LUALIB_API int ext_os_run (lua_State *L);
 LUAMOD_API int luaopen_fs (lua_State *L);
+LUAMOD_API int luaopen_path (lua_State *L);
+LUAMOD_API int luaopen_ccpkg (lua_State *L);
 
 static const char *progname = LUA_PROGNAME;
 
@@ -25,7 +27,7 @@ static void l_message (const char *pname, const char *msg) {
 }
 
 /*
-** Create the 'arg' table, which stores all arguments from the
+** Create the 'ARGS' table, which stores all arguments from the
 ** command line ('argv'). It should be aligned so that, at index 0,
 ** it has 'argv[script]', which is the script name. The arguments
 ** to the script (everything after 'script') go to positive indices;
@@ -39,40 +41,6 @@ static void createargtable (lua_State *L, int argc, char **argv) {
     lua_rawseti(L, -2, i);
   }
   lua_setglobal(L, "ARGS");
-}
-
-/**
- * @brief Add os.path_join function
- * 
- * local path = path_join('/root/path', 'part1', 'part2')
- * 
- * @param L lua state
- */
-static int f_path_join(lua_State *L) {
-  char sep = '/', path[4096], *dst;
-  int nargs = lua_gettop(L);
-  const char *end = &path[4096], *src;
-  const char *root = luaL_checkstring(L, 1);
-  if (root && isalpha(root[0]) && root[1] == ':' && (root[2] == '\\' || root[2] == '/')) {
-    sep = '\\';
-  }
-
-  src = root;
-  dst = &path[0];
-  while (*src != '\0' && dst < end) {
-    *dst++ = *src++;
-  }
-
-  for (int i = 2; i <= nargs; ++i) {
-    src = luaL_checkstring(L, i);
-    *dst++ = sep;
-    while (*src != '\0' && dst < end) {
-      *dst++ = *src++;
-    }
-  }
-  lua_pop(L, nargs);
-  lua_pushstring(L, path);
-  return 1;
 }
 
 /**
@@ -104,9 +72,11 @@ int main (int argc, char **argv) {
   luaL_checkversion(L);  /* check that interpreter has correct version */
   luaL_openlibs(L);
 
-  /* utility modules */
+  /* extra modules */
   luaL_requiref(L, "fs", luaopen_fs, 1);
-  lua_pop(L, 1);
+  luaL_requiref(L, "path", luaopen_path, 1);
+  luaL_requiref(L, "ccpkg", luaopen_ccpkg, 1);
+  lua_pop(L, 3);
 
   lua_pushstring(L, ccpkg_root);
   lua_setglobal(L, "CCPKG_ROOT_DIR");
@@ -115,12 +85,9 @@ int main (int argc, char **argv) {
   lua_getglobal(L, "os");
   lua_pushstring(L, guess_os());
   lua_setfield(L, -2, "name");
-  lua_pushcfunction(L, f_os_run);
+  lua_pushcfunction(L, ext_os_run);
   lua_setfield(L, -2, "run");
   lua_pop(L, lua_gettop(L));
-
-  lua_pushcfunction(L, f_path_join);
-  lua_setglobal(L, "path_join");
 
   createargtable(L, argc, argv);
 

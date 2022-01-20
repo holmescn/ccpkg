@@ -1,3 +1,2 @@
-return {
-  
-}
+local Platform = {}
+return Platform

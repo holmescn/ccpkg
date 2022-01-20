@@ -29,7 +29,7 @@ static int check_and_unwind(lua_State *L, const char *field, int idx) {
   return lua_gettop(L);
 }
 
-LUALIB_API int f_os_run(lua_State *L) {
+LUALIB_API int ext_os_run(lua_State *L) {
   int args_idx = 0, envs_idx = 0;
   int args_b = 0, args_e = 0;
   int envs_b = 0, envs_e = 0;

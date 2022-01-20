@@ -11,9 +11,17 @@ include_directories(${LUA_INCLUDE_DIR})
 
 option(DEV_MODE "development mode" OFF)
 
-add_library(fs STATIC lfs.cc)
+add_library(fs STATIC libfs.cc)
 target_link_libraries(
   fs
+
+  PRIVATE
+  ${LUA_LIBRARIES}
+)
+
+add_library(path STATIC libpath.cc)
+target_link_libraries(
+  path
 
   PRIVATE
   ${LUA_LIBRARIES}
@@ -22,23 +30,23 @@ target_link_libraries(
 if (DEV_MODE)
   find_package(Catch2 CONFIG REQUIRED)
 
-  add_executable(test_os_run tests/test_os_run.cc os_run.c)
-  target_link_libraries(
-    test_os_run
+  add_executable(test_os_run tests/test_os_run.cc ext_os_run.c)
+  target_link_libraries(test_os_run PRIVATE ${LUA_LIBRARIES} Catch2::Catch2WithMain)
 
-    PRIVATE
-    ${LUA_LIBRARIES}
-    Catch2::Catch2WithMain)
+  add_executable(test_path_join tests/test_path_join.cc)
+  target_link_libraries(test_path_join PRIVATE path ${LUA_LIBRARIES} Catch2::Catch2WithMain)
+
   include(CTest)
   include(Catch)
   catch_discover_tests(test_os_run)
+  catch_discover_tests(test_path_join)
 else()
-  add_executable(ccpkg main.c os_run.c)
+  add_executable(ccpkg main.c ext_os_run.c ccpkg.c)
   target_link_libraries(
     ccpkg
 
     PRIVATE
-    fs
+    fs path
     ${LUA_LIBRARIES}
   )
 
