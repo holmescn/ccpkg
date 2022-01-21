@@ -1,5 +1,15 @@
-#include <stdlib.h>
-#include <string.h>
+/*
+** $Id: libext_os.cc $
+** ext os library
+*/
+#include <cstdlib>
+#include <cstring>
+#include <filesystem>
+
+#include <lua.h>
+#include "lualib.h"
+#include "lauxlib.h"
+
 #include <errno.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -7,9 +17,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#include "lua.h"
-#include "lualib.h"
-#include "lauxlib.h"
+namespace fs = std::filesystem;
 
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof(arr[0]))
 static char *ARGS[128];
@@ -29,7 +37,7 @@ static int check_and_unwind(lua_State *L, const char *field, int idx) {
   return lua_gettop(L);
 }
 
-LUALIB_API int ext_os_run(lua_State *L) {
+static int os_run(lua_State *L) {
   int args_idx = 0, envs_idx = 0;
   int args_b = 0, args_e = 0;
   int envs_b = 0, envs_e = 0;
@@ -129,4 +137,49 @@ LUALIB_API int ext_os_run(lua_State *L) {
   }
 
   return 2;
+}
+
+static int os_chdir(lua_State *L) {
+  const char *dir = luaL_checkstring(L, 1);
+  if ( chdir(dir) != 0) {
+    luaL_error(L, "chdir failed: %s", strerror(errno));
+  }
+  return 0;
+}
+
+static int os_currentdir(lua_State *L) {
+  auto curdir = fs::current_path();
+  lua_pushstring(L, curdir.c_str());
+  return 1;
+}
+
+/**
+ * @brief guess OS name from environment
+ * 
+ * @return const char* 
+ */
+const char *guess_os(void) {
+  // TODO Guess OS name from environment
+  return "linux";
+}
+
+/*
+** extend os library
+*/
+LUAMOD_API int luaext_os (lua_State *L) {
+  lua_getglobal(L, "os");
+
+  lua_pushstring(L, guess_os());
+  lua_setfield(L, -2, "name");
+
+  lua_pushcfunction(L, os_run);
+  lua_setfield(L, -2, "run");
+
+  lua_pushcfunction(L, os_chdir);
+  lua_setfield(L, -2, "chdir");
+
+  lua_pushcfunction(L, os_currentdir);
+  lua_setfield(L, -2, "currentdir");
+
+  return 1;
 }

@@ -1,57 +1,91 @@
-function string.trim(s)
-  return (s:gsub("^%s*(.-)%s*$", "%1"))
+function string:trim()
+  return (self:gsub("^%s*(.-)%s*$", "%1"))
 end
 
-function table.dump(o, level)
-  level = level or 1
-  if type(o) == 'table' then
+function string:split(sep)
+  sep = sep or "%s"
+  local t = {}
+  for part in self:gmatch("([^"..sep.."]+)") do
+    table.insert(t, part)
+  end
+  return t
+end
+
+function table.dump(o, indent)
+  if type(o) == "table" then
+    indent = indent or 1
     local s = '{\n'
     for k, v in pairs(o) do
-      if type(k) ~= 'number' then k = '"'..k..'"' end
-      s = s .. string.rep(' ', level) .. '['..k..'] = ' .. table.dump(v, level+1) .. ',\n'
+      -- indent
+      s = s .. string.rep(' ', indent)
+      -- key
+      if type(k) == "string" then
+        s = s .. '["'..k..'"] = '
+      else
+        s = s .. '['..k..'] = '
+      end
+      -- value
+      s = s .. table.dump(v, indent+1) .. ',\n'
     end
-    return s .. '}'
+  
+    if indent == 1 then
+      return s .. '}'
+    else
+      return s .. string.rep(' ', indent-1) .. '}'
+    end
+  elseif type(o) == "string" then
+    return '"' .. o .. '"'
   else
     return tostring(o)
   end
 end
 
 function table.clone(o)
-  if type(o) == 'table' then
+  if type(o) == "table" then
     local n = {}
     for k, v in pairs(o) do
-      if type(v) == 'table' then
-        n[k] = table.clone(o)
-      else
-        n[k] = v
-      end
+      n[k] = table.clone(v)
     end
     return n
   else
-    return v
+    return o
   end
+end
+
+function table.contains(t, v)
+  for _, e in ipairs(t) do
+    if e == v then return true end
+  end
+  return false
+end
+
+function table.toarray(t)
+  local r = {}
+  for k, v in pairs(t) do
+    if type(k) == "string" then
+      table.insert(r, k .. "=" .. v)
+    else
+      table.insert(r, v)
+    end
+  end
+  return r
 end
 
 function fs.create_dirs(dirs)
-  local root = path.join {PROJECT_DIR, '.ccpkg'}
-  if not fs.exists(root) then
-     fs.mkdirs(root)
+  local working_dir = path.join {os.currentdir(), '.ccpkg'}
+  if not fs.exists(working_dir) then
+     fs.mkdirs(working_dir)
   end
 
-  local ret_dirs = {}
-  for _, dir in ipairs(dirs) do
-     local p = path.join {root, dir}
-     if not fs.exists(p) then
-        fs.mkdirs(p)
+  local ret_dirs = {working_dir=working_dir}
+  for _, subdir in ipairs(dirs) do
+     local dir_path = path.join {working_dir, subdir}
+     if not fs.exists(dir_path) then
+        fs.mkdirs(dir_path)
      end
-     ret_dirs[dir] = p
+     ret_dirs[subdir] = dir_path
   end
   return ret_dirs
-end
-
-function path.filename(s)
-  local m = s:match("/([%w-.]+)$")
-  if m then return m end
 end
 
 function create_pkg(o)

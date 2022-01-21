@@ -14,8 +14,10 @@ namespace fs = std::filesystem;
 static int fs_copyfile(lua_State *L) {
   const char* f = luaL_checkstring(L, 1);
   const char* t = luaL_checkstring(L, 2);
+  const auto copyOptions = fs::copy_options::update_existing;
+
   try {
-    fs::copy_file(f, t);
+    fs::copy_file(f, t, copyOptions);
   } catch (const std::exception &e) {
     luaL_error(L, "copy %s to %s failed: %s", f, t, e.what());
   }
@@ -72,7 +74,6 @@ static int fs_exists(lua_State *L) {
 }
 
 static const luaL_Reg fslib[] = {
-  { "currentdir", fs_currentdir },
   { "mkdirs", fs_mkdirs },
   { "exists", fs_exists },
   { "listdir", fs_listdir },

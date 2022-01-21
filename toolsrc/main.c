@@ -10,10 +10,10 @@
 
 #define LUA_PROGNAME "ccpkg"
 
-LUALIB_API int ext_os_run (lua_State *L);
 LUAMOD_API int luaopen_fs (lua_State *L);
 LUAMOD_API int luaopen_path (lua_State *L);
 LUAMOD_API int luaopen_ccpkg (lua_State *L);
+LUAMOD_API int luaext_os (lua_State *L);
 
 static const char *progname = LUA_PROGNAME;
 
@@ -43,15 +43,6 @@ static void createargtable (lua_State *L, int argc, char **argv) {
   lua_setglobal(L, "ARGS");
 }
 
-/**
- * @brief guess OS name from environment
- * 
- * @return const char* 
- */
-const char *guess_os(void) {
-  // TODO Guess OS name from environment
-  return "linux";
-}
 /* }================================================================== */
 
 int main (int argc, char **argv) {
@@ -78,23 +69,9 @@ int main (int argc, char **argv) {
   luaL_requiref(L, "ccpkg", luaopen_ccpkg, 1);
   lua_pop(L, 3);
 
-  lua_pushstring(L, ccpkg_root);
-  lua_setglobal(L, "CCPKG_ROOT_DIR");
-
-  /* extend os module */
-  lua_getglobal(L, "os");
-  lua_pushstring(L, guess_os());
-  lua_setfield(L, -2, "name");
-  lua_pushcfunction(L, ext_os_run);
-  lua_setfield(L, -2, "run");
-  lua_pop(L, lua_gettop(L));
+  luaext_os(L);
 
   createargtable(L, argc, argv);
-
-  if (luaL_dostring(L, "PROJECT_DIR = fs.currentdir()") != LUA_OK) {
-    fprintf(stderr, "%s\n", lua_tostring(L, lua_gettop(L)));
-    lua_pop(L, lua_gettop(L));
-  }
 
   snprintf(script, sizeof(script), "%s/scripts/init.lua", ccpkg_root);
   if (luaL_dofile(L, script) != LUA_OK) {

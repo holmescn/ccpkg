@@ -27,11 +27,19 @@ target_link_libraries(
   ${LUA_LIBRARIES}
 )
 
+add_library(ext_os STATIC libext_os.cc)
+target_link_libraries(
+  ext_os
+
+  PRIVATE
+  ${LUA_LIBRARIES}
+)
+
 if (DEV_MODE)
   find_package(Catch2 CONFIG REQUIRED)
 
-  add_executable(test_os_run tests/test_os_run.cc ext_os_run.c)
-  target_link_libraries(test_os_run PRIVATE ${LUA_LIBRARIES} Catch2::Catch2WithMain)
+  add_executable(test_os_run tests/test_os_run.cc)
+  target_link_libraries(test_os_run PRIVATE ext_os ${LUA_LIBRARIES} Catch2::Catch2WithMain)
 
   add_executable(test_path_join tests/test_path_join.cc)
   target_link_libraries(test_path_join PRIVATE path ${LUA_LIBRARIES} Catch2::Catch2WithMain)
@@ -41,12 +49,12 @@ if (DEV_MODE)
   catch_discover_tests(test_os_run)
   catch_discover_tests(test_path_join)
 else()
-  add_executable(ccpkg main.c ext_os_run.c ccpkg.c)
+  add_executable(ccpkg main.c ccpkg.c)
   target_link_libraries(
     ccpkg
 
     PRIVATE
-    fs path
+    fs path ext_os
     ${LUA_LIBRARIES}
   )
 

@@ -4,7 +4,7 @@ return {
   description="example ccpkg project",
   target={
     platform='android',
-    arch='x86',
+    arch={'arm', 'arm64', 'x86', 'x64'},
     ndk_home='/data/AndroidSdk/ndk/23.1.7779620',
     native_api_level=23
   },

@@ -7,6 +7,6 @@ parser:command("install")
 local args = parser:parse(ARGS)
 
 if args.install then
-  ccpkg:load 'project.lua'
+  ccpkg:init 'project.lua'
   ccpkg:install(args)
 end

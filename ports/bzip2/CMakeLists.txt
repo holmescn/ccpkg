@@ -14,10 +14,12 @@ set(SRCS
 add_library(bz2-shared SHARED ${SRCS})
 set_target_properties(bz2-shared
   PROPERTIES OUTPUT_NAME "bz2"
+  PUBLIC_HEADER "bzlib.h"
   POSITION_INDEPENDENT_CODE 1)
 
 add_library(bz2-static STATIC ${SRCS})
 set_target_properties(bz2-static
-  PROPERTIES OUTPUT_NAME "bz2")
+  PROPERTIES OUTPUT_NAME "bz2"
+  PUBLIC_HEADER "bzlib.h")
 
 install(TARGETS bz2-shared bz2-static)

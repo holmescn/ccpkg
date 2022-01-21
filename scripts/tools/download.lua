@@ -2,9 +2,9 @@ local Tools = require "tools"
 local Download = {}
 
 function Download:detect_downloader(tools, pkg)
-  self.downloader = 'curl'
-  if os.execute("curl --version 2>&1 > /dev/null") then return end
-  self.downloader = nil
+  if ccpkg:cmd_exists("curl") then
+    self.downloader = 'curl'
+  end
   assert(self.downloader, "no downloader found")
 end
 
