@@ -197,12 +197,49 @@ static int os_listdir(lua_State *L) {
   return 1;
 }
 
+struct copy_option_entry {
+  const char *name;
+  fs::copy_options option;
+};
+
+struct copy_option_entry copy_option_list[] = {
+  { "skip", fs::copy_options::skip_existing },
+  { "overwrite", fs::copy_options::overwrite_existing },
+  { "update", fs::copy_options::update_existing },
+  { "recursive", fs::copy_options::recursive },
+  { "recursive", fs::copy_options::recursive }
+};
+
+static int os_copy(lua_State *L) {
+  luaL_checktype(L, 1, LUA_TSTRING);
+  luaL_checktype(L, 2, LUA_TSTRING);
+  luaL_checktype(L, 3, LUA_TTABLE);
+  const char *src = luaL_checkstring(L, 1);
+  const char *dst = luaL_checkstring(L, 2);
+  auto option = fs::copy_options::none;
+
+  for (int i = 0; i < sizeof(copy_option_list)/sizeof(copy_option_entry); ++i) {
+    lua_getfield(L, 3, copy_option_list[i].name);
+    if (lua_type(L, -1) != LUA_TNIL) {
+      option |= copy_option_list[i].option;
+    }
+    lua_pop(L, 1);
+  }
+
+  try {
+    fs::copy(src, dst, option);
+  } catch (const std::exception &e) {
+    luaL_error(L, "error: %s", e.what());
+  }
+  return 0;
+}
+
 static int os_copyfile(lua_State *L) {
   luaL_checktype(L, 1, LUA_TSTRING);
   luaL_checktype(L, 2, LUA_TSTRING);
   const char *src = luaL_checkstring(L, 1);
   const char *dst = luaL_checkstring(L, 2);
-  auto option = fs::copy_options::update_existing;
+  auto option = fs::copy_options::overwrite_existing;
   try {
     fs::copy_file(src, dst, option);
   } catch (const std::exception &e) {
@@ -218,6 +255,7 @@ static const luaL_Reg ext_os[] = {
   { "rmdirs", os_rmdirs },
   { "curdir", os_curdir },
   { "listdir", os_listdir },
+  { "copy", os_copy },
   { "copyfile", os_copyfile },
   { NULL, NULL }
 };

@@ -59,16 +59,25 @@ function CMake:build(pkg, options, cfg)
 end
 
 function CMake:install(pkg, options, cfg)
-  local install_dir = ("%s-%s-%s_%s"):format(pkg.name, pkg.version, options.arch, ccpkg.target.platform)
+  local pkg_name = ("%s-%s"):format(pkg.name, pkg.version)
+  local target = ("%s_%s"):format(options.arch, ccpkg.target.platform)
+  local install_dir = ''
   if cfg == 'Debug' then
-    install_dir = os.path.join {ccpkg.dirs.installed, install_dir, "debug"}
+    install_dir = os.path.join {ccpkg.dirs.installed, pkg_name, target, "debug"}
   else
-    install_dir = os.path.join {ccpkg.dirs.installed, install_dir}
+    install_dir = os.path.join {ccpkg.dirs.installed, pkg_name, target}
   end
+
   if os.path.exists(install_dir) then
     os.rmdirs(install_dir)
   end
   os.mkdirs(install_dir)
+
+  if cfg == "Debug" then
+    pkg.data.debug_install_dir = install_dir
+  else
+    pkg.data.release_install_dir = install_dir
+  end
 
   options.cmd.out = os.path.join {pkg.build_dir, "install.log"}
   options.cmd.args = {
@@ -112,4 +121,9 @@ function Tools:cmake(pkg, options)
   CMake:build(pkg, options, "Debug")
   CMake:install(pkg, options, "Debug")
   print((">>> %s %s %s on %s_%s installed"):format(pkg.name, pkg.version, "dbg", options.arch, ccpkg.target.platform))
+
+  local f = os.path.join(pkg.debug_install_dir, "lib")
+  local t = os.path.join(pkg.release_install_dir, "lib", "debug")
+  os.copy(f, t, {override=1, recursive=1})
+  os.rmdirs(pkg.debug_install_dir)
 end
