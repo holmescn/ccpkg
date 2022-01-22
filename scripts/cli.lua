@@ -1,5 +1,5 @@
 local argparse = require '3rdparty.argparse'
-local parser = argparse("ccpkg", "An example.")
+local parser = argparse("ccpkg", "An better vcpkg.")
 
 -- install dependencies described in project.lua
 parser:command("install")

@@ -23,6 +23,16 @@ namespace fs = std::filesystem;
 static char *ARGS[128];
 static char *ENVS[128];
 
+/**
+ * @brief guess OS name from environment
+ * 
+ * @return const char* 
+ */
+const char *guess_os(void) {
+  // TODO Guess OS name from environment
+  return "linux";
+}
+
 static int check_and_unwind(lua_State *L, const char *field, int idx) {
   int n = luaL_len(L, idx);
   for (int i = 0; i < n; ++i) {
@@ -173,22 +183,91 @@ static int os_rmdirs(lua_State *L) {
   return 0;
 }
 
-/**
- * @brief guess OS name from environment
- * 
- * @return const char* 
- */
-const char *guess_os(void) {
-  // TODO Guess OS name from environment
-  return "linux";
+static int os_listdir(lua_State *L) {
+  luaL_checktype(L, 1, LUA_TSTRING);
+  const char *s = luaL_checkstring(L, 1);
+  lua_createtable(L, 0, 0);
+
+  int i = 0;
+  for (const auto& dir_entry : std::filesystem::directory_iterator{s}) {
+    lua_pushstring(L, dir_entry.path().c_str());
+    lua_seti(L, -2, ++i);
+  }
+
+  return 1;
 }
 
-static const luaL_Reg ext_os_lib[] = {
+static int os_copyfile(lua_State *L) {
+  luaL_checktype(L, 1, LUA_TSTRING);
+  luaL_checktype(L, 2, LUA_TSTRING);
+  const char *src = luaL_checkstring(L, 1);
+  const char *dst = luaL_checkstring(L, 2);
+  auto option = fs::copy_options::update_existing;
+  try {
+    fs::copy_file(src, dst, option);
+  } catch (const std::exception &e) {
+    luaL_error(L, "error: %s", e.what());
+  }
+  return 0;
+}
+
+static const luaL_Reg ext_os[] = {
   { "run", os_run },
   { "chdir", os_chdir },
   { "mkdirs", os_mkdirs },
   { "rmdirs", os_rmdirs },
   { "curdir", os_curdir },
+  { "listdir", os_listdir },
+  { "copyfile", os_copyfile },
+  { NULL, NULL }
+};
+
+static int os_path_join (lua_State *L) {
+  int n, i_begin = 0, i_end = 0;
+  fs::path p;
+
+  if ( lua_type(L, 1) == LUA_TTABLE ) {
+    luaL_checktype(L, 1, LUA_TTABLE);
+    n = luaL_len(L, 1);
+    for (int i = 1; i <= n; ++i) {
+      if (lua_geti(L, 1, i) != LUA_TSTRING) {
+        luaL_error(L, "bad element #%d: string expected, got %s", i, lua_typename(L, lua_type(L, -1)));
+      }
+    }
+    i_begin = 2;
+    i_end = n + 1;
+  } else {
+    n = lua_gettop(L);
+    for (int i = 1; i <= n; ++i) {
+      luaL_checktype(L, i, LUA_TSTRING);
+    }
+    i_begin = 1;
+    i_end = n;
+  }
+  for (int i = i_begin; i_begin > 0 && i <= i_end; ++i) {
+    if (p.empty()) {
+      p = fs::path(lua_tostring(L, i));
+    } else {
+      p.append(lua_tostring(L, i));
+    }
+  }
+  if (p.empty()) {
+    lua_pushstring(L, "");
+  } else {
+    lua_pushstring(L, p.c_str());
+  }
+  return 1;
+}
+
+static int os_path_exists (lua_State *L) {
+  const char *s = luaL_checkstring(L, 1);
+  lua_pushboolean(L, (s ? fs::exists(s) : false));
+  return 1;
+}
+
+static const luaL_Reg os_path[] = {
+  { "join", os_path_join },
+  { "exists", os_path_exists },
   { NULL, NULL }
 };
 
@@ -198,13 +277,20 @@ static const luaL_Reg ext_os_lib[] = {
 LUAMOD_API int luaext_os (lua_State *L) {
   lua_getglobal(L, "os");
 
-  for (const luaL_Reg *entry = ext_os_lib; entry->func; ++entry) {
+  for (const luaL_Reg *entry = ext_os; entry->func; ++entry) {
     lua_pushcfunction(L, entry->func);
     lua_setfield(L, -2, entry->name);
   }
 
   lua_pushstring(L, guess_os());
   lua_setfield(L, -2, "name");
+
+  lua_createtable(L, 0, sizeof(os_path)/sizeof(os_path[0]));
+  for (const luaL_Reg *entry = os_path; entry->func; ++entry) {
+    lua_pushcfunction(L, entry->func);
+    lua_setfield(L, -2, entry->name);
+  }
+  lua_setfield(L, -2, "path");
 
   lua_pop(L, 1);
 

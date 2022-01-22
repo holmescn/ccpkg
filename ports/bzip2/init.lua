@@ -20,8 +20,8 @@ function Pkg:is_installed(arch)
 end
 
 function Pkg:script(arch)
-  local cmakelists = path.join {ccpkg.root_dir, "ports", "bzip2", "CMakeLists.txt"}
-  assert(fs.copyfile(cmakelists, path.join {self.src_dir, "CMakeLists.txt"}), "copy file failed")
+  local cmakelists = os.path.join {ccpkg.root_dir, "ports", "bzip2", "CMakeLists.txt"}
+  os.copyfile(cmakelists, os.path.join {self.src_dir, "CMakeLists.txt"})
 
   ccpkg:cmake (self, {
     arch=arch

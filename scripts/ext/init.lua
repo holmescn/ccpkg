@@ -71,21 +71,8 @@ function table.toarray(t)
   return r
 end
 
-function fs.create_dirs(dirs)
-  local working_dir = path.join {os.currentdir(), '.ccpkg'}
-  if not fs.exists(working_dir) then
-     fs.mkdirs(working_dir)
-  end
-
-  local ret_dirs = {working_dir=working_dir}
-  for _, subdir in ipairs(dirs) do
-     local dir_path = path.join {working_dir, subdir}
-     if not fs.exists(dir_path) then
-        fs.mkdirs(dir_path)
-     end
-     ret_dirs[subdir] = dir_path
-  end
-  return ret_dirs
+function os.path.filename(s)
+  return s:match("/([^/]+)$")
 end
 
 function create_pkg(o)

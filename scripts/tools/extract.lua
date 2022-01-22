@@ -15,13 +15,14 @@ function Tools:extract(pkg)
   assert(os.execute(cmd), "extract file failed")
 
   local pattern = pkg.extract_name or ("%s.*"):format(pkg.name)
-  for _, s in ipairs(fs.listdir(ccpkg.dirs.tmp)) do
+  for _, s in ipairs(os.listdir(ccpkg.dirs.tmp)) do
     local m = s:match(pattern)
     if m then
-      pkg.data.src_dir = path.join {ccpkg.dirs.tmp, m}
+      pkg.data.src_dir = os.path.join {ccpkg.dirs.tmp, m}
       break
     end
   end
-  os.rename(pkg.src_dir, pkg.src_dir .. '-src')
-  pkg.data.src_dir = pkg.data.src_dir .. '-src'
+  local new_src_dir = pkg.src_dir .. '-src'
+  os.rename(pkg.src_dir, new_src_dir)
+  pkg.data.src_dir = new_src_dir
 end

@@ -10,8 +10,6 @@
 
 #define LUA_PROGNAME "ccpkg"
 
-LUAMOD_API int luaopen_fs (lua_State *L);
-LUAMOD_API int luaopen_ccpkg (lua_State *L);
 LUAMOD_API int luaext_os (lua_State *L);
 
 static const char *progname = LUA_PROGNAME;
@@ -44,12 +42,6 @@ static void createargtable (lua_State *L, int argc, char **argv) {
 
 /* }================================================================== */
 
-static const luaL_Reg extralibs[] = {
-  {"fs", luaopen_fs},
-  {"ccpkg", luaopen_ccpkg},
-  {NULL, NULL}
-};
-
 int main (int argc, char **argv) {
   lua_State *L;
   char script[1024];
@@ -68,12 +60,7 @@ int main (int argc, char **argv) {
   luaL_checkversion(L);  /* check that interpreter has correct version */
   luaL_openlibs(L);
 
-  /* load extra libs */
-  for (const luaL_Reg *lib = extralibs; lib->func; ++lib) {
-    luaL_requiref(L, lib->name, lib->func, 1);
-    lua_pop(L, 1);
-  }
-
+  /* extend os library */
   luaext_os(L);
 
   createargtable(L, argc, argv);

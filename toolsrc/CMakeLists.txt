@@ -11,14 +11,6 @@ include_directories(${LUA_INCLUDE_DIR})
 
 option(DEV "development mode" OFF)
 
-add_library(fs STATIC libfs.cc)
-target_link_libraries(
-  fs
-
-  PRIVATE
-  ${LUA_LIBRARIES}
-)
-
 add_library(ext_os STATIC libext_os.cc)
 target_link_libraries(
   ext_os
@@ -37,19 +29,19 @@ if (DEV)
   FetchContent_MakeAvailable(Catch2)
   list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_BINARY_DIR}/_deps/catch2-src/extras")
 
-  add_executable(tests tests/test_fs.cc tests/test_ext_os.cc)
-  target_link_libraries(tests PRIVATE fs ext_os ${LUA_LIBRARIES} Catch2::Catch2WithMain)
+  add_executable(tests tests/test_ext_os.cc)
+  target_link_libraries(tests PRIVATE ext_os ${LUA_LIBRARIES} Catch2::Catch2WithMain)
 
   include(CTest)
   include(Catch)
   catch_discover_tests(tests)
 else()
-  add_executable(ccpkg main.c ccpkg.c)
+  add_executable(ccpkg main.c)
   target_link_libraries(
     ccpkg
 
     PRIVATE
-    fs ext_os
+    ext_os
     ${LUA_LIBRARIES}
   )
 

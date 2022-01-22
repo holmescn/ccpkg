@@ -17,7 +17,7 @@ function Platform:toolchain_file(toolchain_file)
   toolchain_file:write(("set(ANDROID_LD \"%s\")"):format("lld"), "\n")
   toolchain_file:write(("set(ANDROID_PLATFORM \"android-%s\")"):format(native_api_level), "\n")
 
-  local android_toolchain_file = path.join {ndk_home, "build", "cmake", "android.toolchain.cmake"}
+  local android_toolchain_file = os.path.join {ndk_home, "build", "cmake", "android.toolchain.cmake"}
   toolchain_file:write(("include(\"%s\")"):format(android_toolchain_file), "\n")
 end
 

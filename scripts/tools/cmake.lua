@@ -30,11 +30,8 @@ end
 
 function CMake:configure(pkg, options, cfg)
   local build_dir = pkg.src_dir:gsub("-src$", "-build")
-  build_dir = path.join {build_dir, options.arch .. '_' .. ccpkg.target.platform, cfg:lower()}
-  if fs.exists(build_dir) then
-    os.remove(build_dir)
-  end
-  fs.mkdirs(build_dir)
+  build_dir = os.path.join {build_dir, options.arch .. '_' .. ccpkg.target.platform, cfg:lower()}
+  os.mkdirs(build_dir)
   pkg.data.build_dir = build_dir
 
   local args = table.clone(options.args)
@@ -46,34 +43,34 @@ function CMake:configure(pkg, options, cfg)
   end
   table.insert(args, pkg.src_dir)
   options.cmd.args = args
-  options.cmd.out = path.join {pkg.build_dir, "config.log"}
+  options.cmd.out = os.path.join {pkg.build_dir, "config.log"}
 
-  print(">>> Configuration Step", cfg)
+  print(">>> Configuring")
   assert(os.run(options.cmd) == 0, "cmake configure failed")
-  print(">>> Configuration Step", "Success")
+  print(">>> Configure Success")
 end
 
 function CMake:build(pkg, options, cfg)
-  options.cmd.out = path.join {pkg.build_dir, "build.log"}
+  options.cmd.out = os.path.join {pkg.build_dir, "build.log"}
   options.cmd.args = {self.cmake, "--build", pkg.build_dir, "--config", cfg}
-  print(">>> Build Step    ", cfg)
+  print(">>> Building")
   assert(os.run(options.cmd) == 0, "cmake build failed")
-  print(">>> Build Step    ", "Success")
+  print(">>> Build Success")
 end
 
 function CMake:install(pkg, options, cfg)
   local install_dir = ("%s-%s-%s_%s"):format(pkg.name, pkg.version, options.arch, ccpkg.target.platform)
   if cfg == 'Debug' then
-    install_dir = path.join {ccpkg.dirs.installed, install_dir, "debug"}
+    install_dir = os.path.join {ccpkg.dirs.installed, install_dir, "debug"}
   else
-    install_dir = path.join {ccpkg.dirs.installed, install_dir}
+    install_dir = os.path.join {ccpkg.dirs.installed, install_dir}
   end
-  if fs.exists(install_dir) then
-    os.remove(install_dir)
+  if os.path.exists(install_dir) then
+    os.rmdirs(install_dir)
   end
-  fs.mkdirs(install_dir)
+  os.mkdirs(install_dir)
 
-  options.cmd.out = path.join {pkg.build_dir, "install.log"}
+  options.cmd.out = os.path.join {pkg.build_dir, "install.log"}
   options.cmd.args = {
     self.cmake,
     "--install", pkg.build_dir,
@@ -81,9 +78,9 @@ function CMake:install(pkg, options, cfg)
     "--config", cfg
   }
 
-  print(">>> Install Step", cfg)
+  print(">>> Installing")
   assert(os.run(options.cmd) == 0, "cmake install failed")
-  print(">>> Install Step", "Success")
+  print(">>> Install Success")
 end
 
 function Tools:cmake(pkg, options)
@@ -104,10 +101,15 @@ function Tools:cmake(pkg, options)
   options.cmd.envs = table.toarray(options.envs)
   options.cmd.cmd = CMake.cmake
 
-  for _, cfg in ipairs({"Debug", "Release"}) do
-    CMake:configure(pkg, options, cfg)
-    CMake:build(pkg, options, cfg)
-    CMake:install(pkg, options, cfg)
-    print((">>> %s %s %s on %s_%s installed"):format(pkg.name, pkg.version, cfg:lower(), options.arch, ccpkg.target.platform))
-  end
+  print((">>> Build for %s-%s %s"):format(options.arch, self.target.platform, 'rel'))
+  CMake:configure(pkg, options, "Release")
+  CMake:build(pkg, options, "Release")
+  CMake:install(pkg, options, "Release")
+  print((">>> %s %s %s on %s_%s installed"):format(pkg.name, pkg.version, "rel", options.arch, ccpkg.target.platform))
+
+  print((">>> Build for %s-%s %s"):format(options.arch, self.target.platform, 'dbg'))
+  CMake:configure(pkg, options, "Debug")
+  CMake:build(pkg, options, "Debug")
+  CMake:install(pkg, options, "Debug")
+  print((">>> %s %s %s on %s_%s installed"):format(pkg.name, pkg.version, "dbg", options.arch, ccpkg.target.platform))
 end
