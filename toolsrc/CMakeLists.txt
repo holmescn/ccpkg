@@ -9,19 +9,11 @@ find_package(Lua REQUIRED)
 
 include_directories(${LUA_INCLUDE_DIR})
 
-option(DEV_MODE "development mode" OFF)
+option(DEV "development mode" OFF)
 
 add_library(fs STATIC libfs.cc)
 target_link_libraries(
   fs
-
-  PRIVATE
-  ${LUA_LIBRARIES}
-)
-
-add_library(path STATIC libpath.cc)
-target_link_libraries(
-  path
 
   PRIVATE
   ${LUA_LIBRARIES}
@@ -35,26 +27,29 @@ target_link_libraries(
   ${LUA_LIBRARIES}
 )
 
-if (DEV_MODE)
-  find_package(Catch2 CONFIG REQUIRED)
+if (DEV)
+  include(FetchContent)
+  FetchContent_Declare(
+    Catch2
+    GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+    GIT_TAG        v3.0.0-preview4
+  )
+  FetchContent_MakeAvailable(Catch2)
+  list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_BINARY_DIR}/_deps/catch2-src/extras")
 
-  add_executable(test_os_run tests/test_os_run.cc)
-  target_link_libraries(test_os_run PRIVATE ext_os ${LUA_LIBRARIES} Catch2::Catch2WithMain)
-
-  add_executable(test_path_join tests/test_path_join.cc)
-  target_link_libraries(test_path_join PRIVATE path ${LUA_LIBRARIES} Catch2::Catch2WithMain)
+  add_executable(tests tests/test_fs.cc tests/test_ext_os.cc)
+  target_link_libraries(tests PRIVATE fs ext_os ${LUA_LIBRARIES} Catch2::Catch2WithMain)
 
   include(CTest)
   include(Catch)
-  catch_discover_tests(test_os_run)
-  catch_discover_tests(test_path_join)
+  catch_discover_tests(tests)
 else()
   add_executable(ccpkg main.c ccpkg.c)
   target_link_libraries(
     ccpkg
 
     PRIVATE
-    fs path ext_os
+    fs ext_os
     ${LUA_LIBRARIES}
   )
 

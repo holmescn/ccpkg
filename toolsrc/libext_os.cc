@@ -147,10 +147,30 @@ static int os_chdir(lua_State *L) {
   return 0;
 }
 
-static int os_currentdir(lua_State *L) {
-  auto curdir = fs::current_path();
-  lua_pushstring(L, curdir.c_str());
+static int os_curdir(lua_State *L) {
+  auto dir = fs::current_path();
+  lua_pushstring(L, dir.c_str());
   return 1;
+}
+
+static int os_mkdirs(lua_State *L) {
+  const char *s = luaL_checkstring(L, 1);
+  try {
+    fs::create_directories(s);
+  } catch (const std::exception &e) {
+    luaL_error(L, "error: %s", e.what());
+  }
+  return 0;
+}
+
+static int os_rmdirs(lua_State *L) {
+  const char *s = luaL_checkstring(L, 1);
+  try {
+    fs::remove_all(s);
+  } catch (const std::exception &e) {
+    luaL_error(L, "error: %s", e.what());
+  }
+  return 0;
 }
 
 /**
@@ -163,23 +183,30 @@ const char *guess_os(void) {
   return "linux";
 }
 
+static const luaL_Reg ext_os_lib[] = {
+  { "run", os_run },
+  { "chdir", os_chdir },
+  { "mkdirs", os_mkdirs },
+  { "rmdirs", os_rmdirs },
+  { "curdir", os_curdir },
+  { NULL, NULL }
+};
+
 /*
 ** extend os library
 */
 LUAMOD_API int luaext_os (lua_State *L) {
   lua_getglobal(L, "os");
 
+  for (const luaL_Reg *entry = ext_os_lib; entry->func; ++entry) {
+    lua_pushcfunction(L, entry->func);
+    lua_setfield(L, -2, entry->name);
+  }
+
   lua_pushstring(L, guess_os());
   lua_setfield(L, -2, "name");
 
-  lua_pushcfunction(L, os_run);
-  lua_setfield(L, -2, "run");
+  lua_pop(L, 1);
 
-  lua_pushcfunction(L, os_chdir);
-  lua_setfield(L, -2, "chdir");
-
-  lua_pushcfunction(L, os_currentdir);
-  lua_setfield(L, -2, "currentdir");
-
-  return 1;
+  return 0;
 }
