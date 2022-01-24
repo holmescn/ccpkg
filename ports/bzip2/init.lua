@@ -1,4 +1,4 @@
-local Pkg = create_pkg {
+local Pkg = {
   name="bzip2",
   description="bzip2 is a freely available, patent free, high-quality data compressor. It typically compresses files to within 10% to 15% of the best available techniques (the PPM family of statistical compressors), whilst being around twice as fast at compression and six times faster at decompression.",
   homepage="https://sourceware.org/bzip2/",
@@ -16,16 +16,11 @@ local Pkg = create_pkg {
   }
 }
 
-function Pkg:is_installed(arch)
-end
-
-function Pkg:script(arch)
+function Pkg:script(opt)
   local cmakelists = os.path.join {ccpkg.root_dir, "ports", "bzip2", "CMakeLists.txt"}
-  os.copyfile(cmakelists, os.path.join {self.src_dir, "CMakeLists.txt"})
+  os.copyfile(cmakelists, os.path.join {opt.src_dir, "CMakeLists.txt"})
 
-  ccpkg:cmake (self, {
-    arch=arch
-  })
+  ccpkg:cmake (self, opt)
 end
 
 return Pkg

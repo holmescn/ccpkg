@@ -11,7 +11,7 @@ include_directories(${LUA_INCLUDE_DIR})
 
 option(DEV "development mode" OFF)
 
-add_library(ext_os STATIC libext_os.cc)
+add_library(ext_os STATIC src/libext_os.cc)
 target_link_libraries(
   ext_os
 
@@ -36,7 +36,7 @@ if (DEV)
   include(Catch)
   catch_discover_tests(tests)
 else()
-  add_executable(ccpkg main.c)
+  add_executable(ccpkg src/main.c)
   target_link_libraries(
     ccpkg
 

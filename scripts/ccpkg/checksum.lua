@@ -16,10 +16,12 @@ function CheckSum:generate_sig_file(output, hash_value)
   return filename
 end
 
-function Tools:checksum(output, hash)
+local function checksum(opt)
   if not CheckSum.executable then
     CheckSum:detect()
   end
+  print(table.dump(opt))
+  assert(false)
 
   local hash_type, hash_value = hash:match("sha(%d+):(%w+)")
   local sig_file = CheckSum:generate_sig_file(output, hash_value)
@@ -28,3 +30,4 @@ function Tools:checksum(output, hash)
   os.remove(sig_file)
   return ok
 end
+return checksum

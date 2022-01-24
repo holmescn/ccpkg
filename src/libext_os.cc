@@ -47,7 +47,7 @@ static int check_and_unwind(lua_State *L, const char *field, int idx) {
   return lua_gettop(L);
 }
 
-static int os_run(lua_State *L) {
+static int ext_os_run(lua_State *L) {
   int args_idx = 0, envs_idx = 0;
   int args_b = 0, args_e = 0;
   int envs_b = 0, envs_e = 0;
@@ -149,7 +149,7 @@ static int os_run(lua_State *L) {
   return 2;
 }
 
-static int os_chdir(lua_State *L) {
+static int ext_os_chdir(lua_State *L) {
   const char *dir = luaL_checkstring(L, 1);
   if ( chdir(dir) != 0) {
     luaL_error(L, "chdir failed: %s", strerror(errno));
@@ -157,13 +157,13 @@ static int os_chdir(lua_State *L) {
   return 0;
 }
 
-static int os_curdir(lua_State *L) {
+static int ext_os_curdir(lua_State *L) {
   auto dir = fs::current_path();
   lua_pushstring(L, dir.c_str());
   return 1;
 }
 
-static int os_mkdirs(lua_State *L) {
+static int ext_os_mkdirs(lua_State *L) {
   const char *s = luaL_checkstring(L, 1);
   try {
     fs::create_directories(s);
@@ -173,7 +173,7 @@ static int os_mkdirs(lua_State *L) {
   return 0;
 }
 
-static int os_rmdirs(lua_State *L) {
+static int ext_os_rmdirs(lua_State *L) {
   const char *s = luaL_checkstring(L, 1);
   try {
     fs::remove_all(s);
@@ -183,7 +183,7 @@ static int os_rmdirs(lua_State *L) {
   return 0;
 }
 
-static int os_listdir(lua_State *L) {
+static int ext_os_listdir(lua_State *L) {
   luaL_checktype(L, 1, LUA_TSTRING);
   const char *s = luaL_checkstring(L, 1);
   lua_createtable(L, 0, 0);
@@ -210,7 +210,7 @@ struct copy_option_entry copy_option_list[] = {
   { "recursive", fs::copy_options::recursive }
 };
 
-static int os_copy(lua_State *L) {
+static int ext_os_copy(lua_State *L) {
   luaL_checktype(L, 1, LUA_TSTRING);
   luaL_checktype(L, 2, LUA_TSTRING);
   luaL_checktype(L, 3, LUA_TTABLE);
@@ -234,7 +234,7 @@ static int os_copy(lua_State *L) {
   return 0;
 }
 
-static int os_copyfile(lua_State *L) {
+static int ext_os_copyfile(lua_State *L) {
   luaL_checktype(L, 1, LUA_TSTRING);
   luaL_checktype(L, 2, LUA_TSTRING);
   const char *src = luaL_checkstring(L, 1);
@@ -249,18 +249,18 @@ static int os_copyfile(lua_State *L) {
 }
 
 static const luaL_Reg ext_os[] = {
-  { "run", os_run },
-  { "chdir", os_chdir },
-  { "mkdirs", os_mkdirs },
-  { "rmdirs", os_rmdirs },
-  { "curdir", os_curdir },
-  { "listdir", os_listdir },
-  { "copy", os_copy },
-  { "copyfile", os_copyfile },
+  { "run", ext_os_run },
+  { "chdir", ext_os_chdir },
+  { "mkdirs", ext_os_mkdirs },
+  { "rmdirs", ext_os_rmdirs },
+  { "curdir", ext_os_curdir },
+  { "listdir", ext_os_listdir },
+  { "copy", ext_os_copy },
+  { "copyfile", ext_os_copyfile },
   { NULL, NULL }
 };
 
-static int os_path_join (lua_State *L) {
+static int ext_os_path_join (lua_State *L) {
   int n, i_begin = 0, i_end = 0;
   fs::path p;
 
@@ -297,22 +297,22 @@ static int os_path_join (lua_State *L) {
   return 1;
 }
 
-static int os_path_exists (lua_State *L) {
+static int ext_os_path_exists (lua_State *L) {
   const char *s = luaL_checkstring(L, 1);
   lua_pushboolean(L, (s ? fs::exists(s) : false));
   return 1;
 }
 
-static const luaL_Reg os_path[] = {
-  { "join", os_path_join },
-  { "exists", os_path_exists },
+static const luaL_Reg ext_os_path[] = {
+  { "join", ext_os_path_join },
+  { "exists", ext_os_path_exists },
   { NULL, NULL }
 };
 
 /*
 ** extend os library
 */
-LUAMOD_API int luaext_os (lua_State *L) {
+LUAMOD_API int luaopen_ext_os (lua_State *L) {
   lua_getglobal(L, "os");
 
   for (const luaL_Reg *entry = ext_os; entry->func; ++entry) {
@@ -323,8 +323,8 @@ LUAMOD_API int luaext_os (lua_State *L) {
   lua_pushstring(L, guess_os());
   lua_setfield(L, -2, "name");
 
-  lua_createtable(L, 0, sizeof(os_path)/sizeof(os_path[0]));
-  for (const luaL_Reg *entry = os_path; entry->func; ++entry) {
+  lua_createtable(L, 0, sizeof(ext_os_path)/sizeof(ext_os_path[0]));
+  for (const luaL_Reg *entry = ext_os_path; entry->func; ++entry) {
     lua_pushcfunction(L, entry->func);
     lua_setfield(L, -2, entry->name);
   }

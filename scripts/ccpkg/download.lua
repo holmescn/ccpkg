@@ -1,4 +1,3 @@
-local Tools = require "tools"
 local Download = {}
 
 function Download:detect_downloader(tools, pkg)
@@ -8,28 +7,20 @@ function Download:detect_downloader(tools, pkg)
   assert(self.downloader, "no downloader found")
 end
 
-function Download:url_download(pkg)
+function Download:url(opt)
   if not self.downloader then
     self:detect_downloader()
   end
 
-  local url = pkg.url
-  local filename = pkg.filename
+  local url = opt.url
+  local filename = opt.filename
   if not filename then
-    filename = os.path.filename(url)
+    filename = url:match("/([^/]+)$")
+    opt.filename = filename
   end
-  pkg.data.filename = filename
+  assert(filename, "filename is invalid")
 
   local output = os.path.join {ccpkg.dirs.downloads, filename}
-  if os.path.exists(output) then
-    if ccpkg:checksum(output, pkg.hash) then
-      pkg.data.downloaded_file = output
-      return
-    else
-      os.remove(output)
-    end
-  end
-
   if self.downloader == "curl" then
     local cmd = ("%s -o %s %s"):format(self.downloader, output, url)
     assert(os.execute(cmd), ("download %s failed"):format(url))
@@ -39,8 +30,9 @@ function Download:url_download(pkg)
   pkg.data.downloaded_file = output
 end
 
-function Tools:download(pkg)
-  if pkg.url then
-    Download:url_download(pkg)
+local function download(opt)
+  if opt.url then
+    Download:url(opt)
   end
 end
+return download

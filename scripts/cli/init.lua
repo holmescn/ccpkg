@@ -4,9 +4,13 @@ local parser = argparse("ccpkg", "An better vcpkg.")
 -- install dependencies described in project.lua
 parser:command("install")
 
+local function execute_cmd(name)
+  local cmd = require("cli." .. name)
+  cmd(args)
+end
+
 local args = parser:parse(ARGS)
 
 if args.install then
-  ccpkg:init 'project.lua'
-  ccpkg:install(args)
+  execute_cmd("install")
 end

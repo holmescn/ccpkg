@@ -1,4 +1,3 @@
-local Tools = require "tools"
 local Extract = {}
 
 function Extract:detect()
@@ -8,7 +7,7 @@ function Extract:detect()
   assert(self.executable, "tar is not found")
 end
 
-function Tools:extract(pkg)
+local function extract(opt)
   Extract:detect()
 
   local cmd = ("%s -C %s -xf %s"):format(Extract.executable, ccpkg.dirs.tmp, pkg.downloaded_file)
@@ -26,3 +25,4 @@ function Tools:extract(pkg)
   os.rename(pkg.src_dir, new_src_dir)
   pkg.data.src_dir = new_src_dir
 end
+return extract
