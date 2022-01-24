@@ -13,14 +13,13 @@ local Pkg = {
       url='https://www.sourceware.org/pub/bzip2/bzip2-1.0.8.tar.gz',
       hash='sha256:ab5a03176ee106d3f0fa90e381da478ddae405918153cca248e682cd0c4a2269'
     }
-  }
+  },
+  buildsystem="cmake"
 }
 
-function Pkg:script(opt)
+function Pkg:before_configuration(ccpkg, opt)
   local cmakelists = os.path.join {ccpkg.root_dir, "ports", "bzip2", "CMakeLists.txt"}
-  os.copyfile(cmakelists, os.path.join {opt.src_dir, "CMakeLists.txt"})
-
-  ccpkg:cmake (self, opt)
+  os.copyfile(cmakelists, os.path.join {opt.src_dir, "CMakeLists.txt"}, {skip=1})
 end
 
 return Pkg

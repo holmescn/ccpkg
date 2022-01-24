@@ -1,3 +1,4 @@
+local ccpkg = require "ccpkg"
 
 local function install_pkg(pkg_name, desc)
   local pkg_path = os.path.join {ccpkg.root_dir, "ports", pkg_name}
@@ -6,24 +7,21 @@ local function install_pkg(pkg_name, desc)
   local pkg = require(pkg_name)
   ccpkg:check_version(pkg, desc.version)
 
-  local opt = ccpkg:create_opt(pkg, desc)
-
   -- TODO handle depends of the pkg
 
-  if not ccpkg:downloaded(opt) then
-    assert(false)
-    -- ccpkg.download(opt)
-    -- ccpkg:extract(opt)
+  if not ccpkg:check_downloaded(pkg) then
+    ccpkg:download(pkg)
   end
-  assert(false)
+  ccpkg:extract(pkg)
 
-  -- for _, arch in ipairs(ccpkg.project.target.arch) do
-  --   opt.arch = arch
-  --   opt.arch_platform = ("%s_%s"):format(arch, ccpkg.project.target.platform)
-  --   if not ccpkg:installed(pkg) then
-  --     pkg:script(opt)
-  --   end
-  -- end
+  for _, arch in ipairs(ccpkg.project.target.arch) do
+    local opt = ccpkg:create_opt(pkg, desc, arch)
+    if not ccpkg:check_installed(opt) then
+      ccpkg[pkg.buildsystem](ccpkg, opt)
+    else
+      print((">>> %s on %s is installed"):format(opt.versioned_name, opt.arch_platform))
+    end
+  end
 end
 
 local function cmd(args)

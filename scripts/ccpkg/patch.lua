@@ -1,5 +1,6 @@
-local Tools = require "tools"
+local ccpkg = require "ccpkg"
 local Patch = {}
 
-function Tools:patch(pkg)
+function ccpkg:patch(opt)
 end
+return ccpkg.patch

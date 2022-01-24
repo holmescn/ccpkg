@@ -8,4 +8,5 @@ package.path = os.path.join(root_dir, 'ports', "?.lua") .. ";" .. package.path
 package.path = os.path.join(root_dir, 'ports', '?', "init.lua") .. ";" .. package.path
 package.cpath = ''
 
-dofile( os.path.join (root_dir, "scripts", "ccpkg", "init.lua") )
+dofile( os.path.join(root_dir, "scripts", "ext", "init.lua") )
+dofile( os.path.join(root_dir, "scripts", "cli", "init.lua") )

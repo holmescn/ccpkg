@@ -1,26 +1,29 @@
-ccpkg = {
+local ccpkg = {
   root_dir=os.getenv("CCPKG_ROOT"),
-  scripts_dir=os.path.join(os.getenv("CCPKG_ROOT"), "scripts")
+  scripts_dir=os.path.join(os.getenv("CCPKG_ROOT"), "scripts"),
+  mt={}
 }
+setmetatable(ccpkg, ccpkg.mt)
 
-local function search(t, k)
-  local fn = os.path.join(ccpkg.scripts_dir, "ccpkg", k .. ".lua")
-  if os.path.exists(fn) then
-    return dofile(fn)
+ccpkg.mt.__index = function (t, k)
+  local s = os.path.join(ccpkg.scripts_dir, "ccpkg", k .. ".lua")
+  if os.path.exists(s) then
+    return require ("ccpkg." .. k)
+  end
+  s = os.path.join(ccpkg.scripts_dir, "buildsystem", k .. ".lua")
+  if os.path.exists(s) then
+    return require ("buildsystem." .. k)
   end
 end
 
-setmetatable(ccpkg, {__index=search})
-
-function ccpkg:create_opt(pkg, desc)
-  local o = {pkg=pkg, envs}
-  local version = pkg.versions[desc.version]
-  for k, v in pairs(version) do
-    o[k] = v
-  end
+function ccpkg:create_opt(pkg, desc, arch)
+  local o = {pkg=pkg}
   o.version = desc.version
-  o.name_version = ("%s-%s"):format(pkg.name, desc.version)
+  o.versioned_name = pkg.name .. '-' .. desc.version
   o.platform = self.project.target.platform
+  o.arch = arch
+  o.arch_platform = arch .. "_" .. o.platform
+  o.src_dir = pkg.src_dir
   return o
 end
 
@@ -76,32 +79,57 @@ end
 function ccpkg:check_version(pkg, version)
   local v = pkg.versions[version]
   assert(v, ("unknown version '%s' of %s"):format(version, pkg.name))
+  pkg.version = {}
+  for key, val in pairs(v) do
+    pkg.version[key] = val
+  end
 end
 
-function ccpkg:downloaded(opt)
-  print(table)
-  local filename = opt.downloaded_filename
+function ccpkg:check_downloaded(pkg)
+  pkg.version.downloaded = pkg.version.downloaded or {}
+
+  local filename = pkg.version.filename
   if not filename then
-    if opt.url then
-      filename = opt.url:match("/([^/]+)$")
+    if pkg.version.url then
+      filename = pkg.version.url:match("/([^/]+)$")
     end
   end
   assert(filename, "invalid filename")
-  opt.downloaded_filename = filename
+  pkg.version.downloaded.filename = filename
 
-  opt.downloaded_file_path = os.path.join(self.dirs.downloads, filename)
-  if os.path.exists(opt.downloaded_file_path) then
-    if self:checksum(opt) then
+  pkg.version.downloaded.full_path = os.path.join(self.dirs.downloads, filename)
+
+  if os.path.exists(pkg.version.downloaded.full_path) then
+    if self:checksum(pkg) then
       return true
     end
-    os.remove(full_path)
+    os.remove(pkg.version.downloaded.full_path)
   end
   return false
 end
 
-function ccpkg:installed(pkg, opt)
-  return false
+function ccpkg:check_installed(opt)
+  local dir = opt.versioned_name .. '-' .. opt.arch_platform
+  return os.path.exists(os.path.join(self.dirs.installed, dir))
 end
 
-dofile( os.path.join(ccpkg.scripts_dir, "ext", "init.lua") )
-dofile( os.path.join(ccpkg.scripts_dir, "cli", "init.lua") )
+function ccpkg:transform_envs(envs)
+  local envs_lst = {}
+  for k, v in pairs(envs) do
+    if type(v) == "string" then
+      table.insert(envs_lst, k .. "=" .. v)
+    elseif type(v) == "table" then
+      table.insert(envs_lst, k .. "=" .. table.concat(v, ":"))
+    else
+      table.insert(envs_lst, k .. "=" .. tostring(v))
+    end
+  end
+  return envs_lst
+end
+
+function ccpkg:log_filename(opt, step, config)
+  local filename = ("%s-%s-%s-%s.log"):format(step, opt.arch, opt.platform, config)
+  return os.path.join {opt.build_dir, "..", filename}
+end
+
+return ccpkg

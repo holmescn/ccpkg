@@ -1,71 +1,87 @@
-local Tools = require "tools"
-local CMake = {}
+local ccpkg = require "ccpkg"
+local CMake = {
+  envs={
+    PATH=ccpkg:common_paths()
+  },
+  configs={
+    rel="Release",
+    dbg="Debug"
+  }
+}
 
-function CMake:detect(paths)
-  assert(ccpkg:cmd_exists("cmake"), "no cmake found in current $PATH")
+function CMake:detect()
+  if self.cmake then return end
+
   self.cmake = ccpkg:cmd_full_path("cmake")
+  assert(self.cmake ~= "", "no cmake found in current $PATH")
   local cmake_path = self.cmake:gsub("(.*)/[^/]*$", "%1")
-  if not table.contains(paths, cmake_path) then
-    table.insert(paths, cmake_path)
+  if not table.contains(self.envs["PATH"], cmake_path) then
+    table.insert(self.envs["PATH"], cmake_path)
   end
 
   if ccpkg:cmd_exists('ninja') then
     self.ninja = ccpkg:cmd_full_path("ninja")
     local ninja_path = self.ninja:gsub("(.*)/[^/]*$", "%1")
-    if not table.contains(paths, ninja_path) then
-      table.insert(paths, ninja_path)
+    if not table.contains(self.envs["PATH"], ninja_path) then
+      table.insert(self.envs["PATH"], ninja_path)
     end
   end
 end
 
-function CMake:paths_to_envs(envs, paths)
-  local sep = ":"
-  local env_path = envs['PATH'] or ""
-  env_path = env_path:split(sep)
-  for _, p in ipairs(paths) do
-    table.insert(env_path, p)
+function CMake:construct_configure_args(opt)
+  local args = {}
+  if type(opt.args) == "table" then
+    args = table.merge(args, opt.args)
   end
-  envs["PATH"] = table.concat(env_path, sep)
+  for k, v in pairs(opt.options) do
+    if type(v) == "boolean" then
+      if v then
+        table.insert(args, "-D" .. k .. "=ON")
+      else
+        table.insert(args, "-D" .. k .. "=OFF")
+      end
+    elseif type(v) == "string" then
+      table.insert(args, "-D" .. k .. "=" .. v)
+    else
+      table.insert(args, "-D" .. k .. "=" .. tostring(v))
+    end
+  end
+  return args
 end
 
-function CMake:configure(pkg, options, cfg)
-  local build_dir = pkg.src_dir:gsub("-src$", "-build")
-  build_dir = os.path.join {build_dir, options.arch .. '_' .. ccpkg.target.platform, cfg:lower()}
+function CMake:configure(opt, config)
+  local build_dir = opt.src_dir:gsub("-src$", "-build")
+  build_dir = os.path.join {build_dir, ("%s-%s-%s"):format(opt.arch, opt.platform, config)}
   os.mkdirs(build_dir)
-  pkg.data.build_dir = build_dir
+  opt.build_dir = build_dir
 
-  local args = table.clone(options.args)
+  local args = self:construct_configure_args(opt)
   table.insert(args, 1, self.cmake)
-  table.insert(args, "-B")
-  table.insert(args, pkg.build_dir)
   if self.ninja then
     table.insert(args, "-GNinja")
   end
-  table.insert(args, pkg.src_dir)
-  options.cmd.args = args
-  options.cmd.out = os.path.join {pkg.build_dir, "config.log"}
+  table.insert(args, opt.src_dir)
+  local cmd = {cmd=self.cmake, args=args, envs=opt.envs}
+  cmd.out = ccpkg:log_filename(opt, "config", config)
+
+  os.chdir(build_dir)
 
   print(">>> Configuring")
-  assert(os.run(options.cmd) == 0, "cmake configure failed")
-  print(">>> Configure Success")
+  assert(os.run(cmd) == 0, "cmake configure failed")
 end
 
-function CMake:build(pkg, options, cfg)
-  options.cmd.out = os.path.join {pkg.build_dir, "build.log"}
-  options.cmd.args = {self.cmake, "--build", pkg.build_dir, "--config", cfg}
+function CMake:build(opt, config)
+  local cmd = {cmd=self.cmake, envs=opt.envs}
+  cmd.out = ccpkg:log_filename(opt, "build", config)
+  cmd.args = {self.cmake, "--build", opt.build_dir, "--config", self.configs[config]}
   print(">>> Building")
-  assert(os.run(options.cmd) == 0, "cmake build failed")
-  print(">>> Build Success")
+  assert(os.run(cmd) == 0, "cmake build failed")
 end
 
-function CMake:install(pkg, options, cfg)
-  local pkg_name = ("%s-%s"):format(pkg.name, pkg.version)
-  local target = ("%s_%s"):format(options.arch, ccpkg.target.platform)
-  local install_dir = ''
-  if cfg == 'Debug' then
-    install_dir = os.path.join {ccpkg.dirs.installed, pkg_name, target, "debug"}
-  else
-    install_dir = os.path.join {ccpkg.dirs.installed, pkg_name, target}
+function CMake:install(opt, config)
+  local install_dir = os.path.join(ccpkg.dirs.installed, opt.versioned_name .. '-' .. opt.arch_platform)
+  if config == 'dbg' then
+    install_dir = os.path.join {install_dir, "debug"}
   end
 
   if os.path.exists(install_dir) then
@@ -73,57 +89,52 @@ function CMake:install(pkg, options, cfg)
   end
   os.mkdirs(install_dir)
 
-  if cfg == "Debug" then
-    pkg.data.debug_install_dir = install_dir
-  else
-    pkg.data.release_install_dir = install_dir
-  end
+  opt.install_dir = opt.install_dir or {}
+  opt.install_dir[config] = install_dir
 
-  options.cmd.out = os.path.join {pkg.build_dir, "install.log"}
-  options.cmd.args = {
+  local cmd = {cmd=self.cmake, envs=opt.envs}
+  cmd.out = ccpkg:log_filename(opt, "install", config)
+  cmd.args = {
     self.cmake,
-    "--install", pkg.build_dir,
+    "--install", ".",
     "--prefix", install_dir,
-    "--config", cfg
+    "--config", self.configs[config]
   }
 
-  print(">>> Installing")
-  assert(os.run(options.cmd) == 0, "cmake install failed")
-  print(">>> Install Success")
+  print(">>> Installing to", install_dir)
+  if os.run(cmd) ~= 0 then
+    os.rmdirs(install_dir)
+    error(">>> Install Failed")
+  end
 end
 
-function Tools:cmake(pkg, options)
-  options.cmd = {cmd='', args={}, envs={}, out=''}
-  options.paths = ccpkg:common_paths()
-  options.args = options.args or {}
-  options.envs = options.envs or {}
-  CMake:detect(options.paths)
+function ccpkg:cmake(opt)
+  CMake:detect()
 
-  if type(options.options) == "table" then
-    for _, v in ipairs(options.options) do
-      table.insert(options.args, "-D" .. v)
-    end
+  opt.args = {}
+  opt.options = {}
+  if opt.pkg.before_configuration then
+    opt.pkg:before_configuration(ccpkg, opt)
   end
 
-  ccpkg.platform:cmake(pkg, options)
-  CMake:paths_to_envs(options.envs, options.paths)
-  options.cmd.envs = table.toarray(options.envs)
-  options.cmd.cmd = CMake.cmake
+  -- append platform specific args and envs
+  local platform = require("platform." .. opt.platform)
+  platform:cmake(opt)
 
-  print((">>> Build for %s-%s %s"):format(options.arch, self.target.platform, 'rel'))
-  CMake:configure(pkg, options, "Release")
-  CMake:build(pkg, options, "Release")
-  CMake:install(pkg, options, "Release")
-  print((">>> %s %s %s on %s_%s installed"):format(pkg.name, pkg.version, "rel", options.arch, ccpkg.target.platform))
+  opt.envs = ccpkg:transform_envs(CMake.envs)
 
-  print((">>> Build for %s-%s %s"):format(options.arch, self.target.platform, 'dbg'))
-  CMake:configure(pkg, options, "Debug")
-  CMake:build(pkg, options, "Debug")
-  CMake:install(pkg, options, "Debug")
-  print((">>> %s %s %s on %s_%s installed"):format(pkg.name, pkg.version, "dbg", options.arch, ccpkg.target.platform))
+  local pwd = os.curdir()
+  for _, c in ipairs({"rel", "dbg"}) do
+    print((">>> Build for %s-%s-%s"):format(opt.arch, opt.platform, c))
+    CMake:configure(opt, c)
+    CMake:build(opt, c)
+    CMake:install(opt, c)
+    print((">>> %s %s-%s-%s installed"):format(opt.versioned_name, opt.arch, opt.platform, c))  
+  end
+  os.chdir(pwd)
 
-  local f = os.path.join(pkg.debug_install_dir, "lib")
-  local t = os.path.join(pkg.release_install_dir, "lib", "debug")
-  os.copy(f, t, {override=1, recursive=1})
-  os.rmdirs(pkg.debug_install_dir)
+  os.move(os.path.join(opt.install_dir.dbg, "lib"),
+          os.path.join(opt.install_dir.rel, "lib", "debug"))
 end
+
+return ccpkg.cmake

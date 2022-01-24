@@ -1,33 +1,31 @@
-local Tools = require "tools"
+local ccpkg = require "ccpkg"
 local CheckSum = {}
 
 function CheckSum:detect()
+  if self.executable then return end
+
   self.executable = "shasum"
   if os.execute("shasum -v 2>&1 > /dev/null") then return end
   self.executable = nil
   assert(self.executable, "shasum is not found")
 end
 
-function CheckSum:generate_sig_file(output, hash_value)
-  local filename = output .. ".sig"
+function CheckSum:generate_sig_file(full_path, hash_value)
+  local filename = full_path .. ".sig"
   io.output(filename)
-  io.write(("%s  %s"):format(hash_value, output))
+  io.write(("%s  %s"):format(hash_value, full_path))
   io.close()
   return filename
 end
 
-local function checksum(opt)
-  if not CheckSum.executable then
-    CheckSum:detect()
-  end
-  print(table.dump(opt))
-  assert(false)
+function ccpkg:checksum(pkg)
+  CheckSum:detect()
 
-  local hash_type, hash_value = hash:match("sha(%d+):(%w+)")
-  local sig_file = CheckSum:generate_sig_file(output, hash_value)
+  local hash_type, hash_value = pkg.version.hash:match("sha(%d+):(%w+)")
+  local sig_file = CheckSum:generate_sig_file(pkg.version.downloaded.full_path, hash_value)
   local cmd = ("%s -a %s -c %s"):format(CheckSum.executable, hash_type, sig_file)
-  local ok, exit, status = os.execute(cmd)
+  local ok = os.execute(cmd)
   os.remove(sig_file)
   return ok
 end
-return checksum
+return ccpkg.checksum

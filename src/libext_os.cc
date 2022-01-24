@@ -210,24 +210,28 @@ struct copy_option_entry copy_option_list[] = {
   { "recursive", fs::copy_options::recursive }
 };
 
-static int ext_os_copy(lua_State *L) {
-  luaL_checktype(L, 1, LUA_TSTRING);
-  luaL_checktype(L, 2, LUA_TSTRING);
-  luaL_checktype(L, 3, LUA_TTABLE);
-  const char *src = luaL_checkstring(L, 1);
-  const char *dst = luaL_checkstring(L, 2);
-  auto option = fs::copy_options::none;
+static fs::copy_options opt_copy_options(lua_State *L, int arg) {
+  auto options = fs::copy_options::none;
+
+  if (lua_type(L, arg) != LUA_TTABLE) return options;
 
   for (int i = 0; i < sizeof(copy_option_list)/sizeof(copy_option_entry); ++i) {
-    lua_getfield(L, 3, copy_option_list[i].name);
+    lua_getfield(L, arg, copy_option_list[i].name);
     if (lua_type(L, -1) != LUA_TNIL) {
-      option |= copy_option_list[i].option;
+      options |= copy_option_list[i].option;
     }
     lua_pop(L, 1);
   }
+  return options;
+}
+
+static int ext_os_copy(lua_State *L) {
+  const char *src = luaL_checkstring(L, 1);
+  const char *dst = luaL_checkstring(L, 2);
+  auto options = opt_copy_options(L, 3);
 
   try {
-    fs::copy(src, dst, option);
+    fs::copy(src, dst, options);
   } catch (const std::exception &e) {
     luaL_error(L, "error: %s", e.what());
   }
@@ -235,13 +239,26 @@ static int ext_os_copy(lua_State *L) {
 }
 
 static int ext_os_copyfile(lua_State *L) {
-  luaL_checktype(L, 1, LUA_TSTRING);
-  luaL_checktype(L, 2, LUA_TSTRING);
   const char *src = luaL_checkstring(L, 1);
   const char *dst = luaL_checkstring(L, 2);
-  auto option = fs::copy_options::overwrite_existing;
+  auto options = opt_copy_options(L, 3);
+
   try {
-    fs::copy_file(src, dst, option);
+    fs::copy_file(src, dst, options);
+  } catch (const std::exception &e) {
+    luaL_error(L, "error: %s", e.what());
+  }
+  return 0;
+}
+
+static int ext_os_move(lua_State *L) {
+  const char *src = luaL_checkstring(L, 1);
+  const char *dst = luaL_checkstring(L, 2);
+  auto options = opt_copy_options(L, 3);
+
+  try {
+    fs::copy(src, dst, options);
+    fs::remove_all(src);
   } catch (const std::exception &e) {
     luaL_error(L, "error: %s", e.what());
   }
@@ -255,6 +272,7 @@ static const luaL_Reg ext_os[] = {
   { "rmdirs", ext_os_rmdirs },
   { "curdir", ext_os_curdir },
   { "listdir", ext_os_listdir },
+  { "move", ext_os_move },
   { "copy", ext_os_copy },
   { "copyfile", ext_os_copyfile },
   { NULL, NULL }

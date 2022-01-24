@@ -61,9 +61,11 @@ end
 
 function table.merge(t, ...)
   assert(type(t) == "table")
-  for i, o in ipairs(arg) do
-    assert(type(o) == "table", ("bad element #%d: table expected, got %s"):format(i, type(o)))
-    for k, v in pairs(o) do
+  local n = select('#', ...)
+  for i = 1, n do
+    local arg = select(i, ...)
+    assert(type(arg) == "table", ("bad element #%d: table expected, got %s"):format(i, type(arg)))
+    for k, v in pairs(arg) do
       t[k] = v
     end
   end
