@@ -47,27 +47,9 @@ function table.contains(t, v)
   return false
 end
 
-function table.toarray(t)
-  local r = {}
-  for k, v in pairs(t) do
-    if type(k) == "string" then
-      table.insert(r, k .. "=" .. v)
-    else
-      table.insert(r, v)
-    end
+function table.append(t1, t2)
+  for _, v in ipairs(t2) do
+    table.insert(t1, v)
   end
-  return r
-end
-
-function table.merge(t, ...)
-  assert(type(t) == "table")
-  local n = select('#', ...)
-  for i = 1, n do
-    local arg = select(i, ...)
-    assert(type(arg) == "table", ("bad element #%d: table expected, got %s"):format(i, type(arg)))
-    for k, v in pairs(arg) do
-      t[k] = v
-    end
-  end
-  return t
+  return t1
 end

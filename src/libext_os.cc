@@ -321,9 +321,22 @@ static int ext_os_path_exists (lua_State *L) {
   return 1;
 }
 
+static int ext_os_path_relative (lua_State *L) {
+  const char *path = luaL_checkstring(L, 1);
+  const char *base = luaL_checkstring(L, 2);
+  try {
+    fs::path r = fs::relative(path, base);
+    lua_pushstring(L, r.c_str());
+  } catch (const std::exception &e) {
+    luaL_error(L, "error: %s", e.what());
+  }
+  return 1;
+}
+
 static const luaL_Reg ext_os_path[] = {
   { "join", ext_os_path_join },
   { "exists", ext_os_path_exists },
+  { "relative", ext_os_path_relative },
   { NULL, NULL }
 };
 

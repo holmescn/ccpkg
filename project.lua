@@ -9,5 +9,8 @@ return {
     bzip2={
       version='1.0.8'
     },
+    libffi={
+      version='latest'
+    },
   }
 }

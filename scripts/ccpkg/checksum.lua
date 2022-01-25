@@ -21,8 +21,8 @@ end
 function ccpkg:checksum(pkg)
   CheckSum:detect()
 
-  local hash_type, hash_value = pkg.version.hash:match("sha(%d+):(%w+)")
-  local sig_file = CheckSum:generate_sig_file(pkg.version.downloaded.full_path, hash_value)
+  local hash_type, hash_value = pkg.current.hash:match("sha(%d+):(%w+)")
+  local sig_file = CheckSum:generate_sig_file(pkg.current.downloaded.full_path, hash_value)
   local cmd = ("%s -a %s -c %s"):format(CheckSum.executable, hash_type, sig_file)
   local ok = os.execute(cmd)
   os.remove(sig_file)

@@ -17,7 +17,7 @@ local Pkg = {
   buildsystem="cmake"
 }
 
-function Pkg:before_configuration(ccpkg, opt)
+function Pkg:patch_source(ccpkg, opt)
   local cmakelists = os.path.join {ccpkg.root_dir, "ports", "bzip2", "CMakeLists.txt"}
   os.copyfile(cmakelists, os.path.join {opt.src_dir, "CMakeLists.txt"}, {skip=1})
 end
