@@ -71,9 +71,24 @@ function ccpkg:cmd_paths(cmd_name)
   end
 end
 
+function ccpkg:check_pkg_exists(pkg_name)
+  local pkg_path = os.path.join {ccpkg.ports_dir, pkg_name}
+  if os.path.exists(pkg_path) then
+    local pkg_init_file = os.path.join(pkg_path, "init.lua")
+    assert(os.path.exists(pkg_init_file), "no init.lua found in " .. pkg_path)
+  else
+    local pkg_lua_file = os.path.join(ccpkg.ports_dir, pkg_name .. ".lua")
+    assert(os.path.exists(pkg_lua_file), "unknown pkg " .. pkg_name)  
+  end
+end
+
 function ccpkg:check_version(pkg, version)
   local v = pkg.versions[version]
   assert(v, ("unknown version '%s' of %s"):format(version, pkg.name))
+  while type(v) == "string" do
+    version = v
+    v = pkg.versions[version]
+  end
   pkg.current = table.clone(v)
   pkg.current.version = version
 end

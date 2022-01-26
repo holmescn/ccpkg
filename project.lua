@@ -12,5 +12,14 @@ return {
     libffi={
       version='latest'
     },
+    liblzma={
+      version='latest'
+    },
+    sqlite3={
+      version='latest'
+    },
+    openssl={
+      version='latest'
+    },
   }
 }

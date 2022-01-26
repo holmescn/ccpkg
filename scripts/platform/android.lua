@@ -2,22 +2,22 @@ local ccpkg = require "ccpkg"
 local Platform = {
   ["arm"]={
     abi="armeabi-v7a",
-    host='armv7a-none-linux-android',
+    host='arm-none-linux-android',
     clang="armv7a-linux-androideabi%d-clang"
   },
   ['arm64']={
     abi="arm64-v8a",
-    host='aarch64-none-linux-android',
+    host='arm64-none-linux-android',
     clang="aarch64-linux-android%d-clang"
   },
   ["x86"]={
     abi='x86',
-    host='i686-none-linux-android',
+    host='x86-none-linux-android',
     clang="i686-linux-android%d-clang"
   },
   ['x64']={
     abi='x86_64',
-    host='x86_64-none-linux-android',
+    host='x64-none-linux-android',
     clang="x86_64-linux-android%d-clang"
   }
 }
@@ -77,8 +77,6 @@ function Platform:configure_make(opt)
   opt.envs["RANLIB"] = "llvm-ranlib"
   opt.envs["READELF"] = "llvm-readelf"
   opt.envs["STRIP"] = "llvm-strip"
-  table.insert(opt.args, "--build")
-  table.insert(opt.args, "x86_64-pc-linux-gnu")
   table.insert(opt.args, "--host")
   table.insert(opt.args, self[opt.arch].host)
 end

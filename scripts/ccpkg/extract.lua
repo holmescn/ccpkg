@@ -11,15 +11,19 @@ function Extract:detect()
 end
 
 function Extract:extract_dir(pkg)
+  local filename = pkg.current.downloaded.filename
+  local extract_name = filename:gsub("(.*)%.tar%.%w+$", "%1")
   for _, dir in ipairs(os.listdir(ccpkg.dirs.tmp)) do
-    if dir == pkg.current.extract_name then
-      return os.path.join {ccpkg.dirs.tmp, dir}
-    else
-      if dir:match(("%s.*"):format(pkg.name)) then
-        return os.path.join {ccpkg.dirs.tmp, dir}
-      end
+    local d = os.path.relative(dir, ccpkg.dirs.tmp)
+    if d == pkg.current.extract_name then
+      return dir
+    elseif d == extract_name then
+      return dir
+    elseif d:match(pkg.name .. ".*$") then
+      return dir
     end
   end
+  assert(false, "did not find extract folder")
 end
 
 function Extract:remove_old_dirs(pkg)

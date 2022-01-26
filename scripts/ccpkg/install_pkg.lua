@@ -46,14 +46,16 @@ function ccpkg:build_process(opt, debug)
   os.mkdirs(opt.build_dir)
   os.chdir(opt.build_dir)
 
+  print(">>> Configuring")
+  self:call_pkg_hook("before_configure", opt)
   cmd = self.buildsystem:configure(opt, debug)
   cmd.out = ccpkg:log_filename(opt, "config", suffix)
-  print(">>> Configuring")
   assert(os.run(cmd) == 0, "configure failed")
 
+  print(">>> Building")
+  self:call_pkg_hook("before_build", opt)
   cmd = self.buildsystem:build(opt, debug)
   cmd.out = ccpkg:log_filename(opt, "build", suffix)
-  print(">>> Building")
   assert(os.run(cmd) == 0, "build failed")
 
   local install_dir = ccpkg:install_dir(opt, debug)
@@ -62,9 +64,10 @@ function ccpkg:build_process(opt, debug)
   opt.install_dir = opt.install_dir or {}
   opt.install_dir[suffix] = install_dir
 
+  print(">>> Installing to " .. install_dir)
+  self:call_pkg_hook("before_install", opt)
   cmd = self.buildsystem:install(opt, debug)
   cmd.out = ccpkg:log_filename(opt, "install", suffix)
-  print(">>> Installing to " .. install_dir)
   if os.run(cmd) ~= 0 then
     os.rmdirs(install_dir)
     error(">>> Install Failed")

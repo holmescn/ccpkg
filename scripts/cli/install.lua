@@ -13,8 +13,7 @@ local function cmd(args)
   ccpkg.platform = require("platform." .. platform):init()
 
   for pkg_name, desc in pairs(ccpkg.project.dependencies) do
-    local pkg_path = os.path.join {ccpkg.ports_dir, pkg_name}
-    assert(os.path.exists(pkg_path), ("unknown pkg %s"):format(pkg_name))
+    ccpkg:check_pkg_exists(pkg_name)
   
     local pkg = require(pkg_name)
     ccpkg:check_version(pkg, desc.version)
