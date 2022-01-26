@@ -53,7 +53,7 @@ end
 function ConfigureMake:build(opt, debug)
   return {cmd=self.executables.make, envs=opt.envs,
     args={
-      self.executables.make, "-j4"
+      self.executables.make
     }
   }
 end

@@ -5,8 +5,8 @@ local Pkg = {
   versions={
     ["latest"]="1.1.1m",
     ['1.1.1m']={
-      url='https://github.com/openssl/openssl/archive/refs/tags/OpenSSL_1_1_1m.tar.gz',
-      hash='sha256:36ae24ad7cf0a824d0b76ac08861262e47ec541e5d0f20e6d94bab90b2dab360'
+      url='https://www.openssl.org/source/openssl-1.1.1m.tar.gz',
+      hash='sha256:f89199be8b23ca45fc7cb9f1d8d3ee67312318286ad030f5316aca6462db6c96'
     }
   },
   buildsystem="configure_make"
@@ -15,7 +15,7 @@ local Pkg = {
 function Pkg:patch_source(ccpkg, opt)
   local old_file = os.path.join(opt.src_dir, "Configure")
   local new_file = os.path.join(opt.src_dir, "configure")
-  os.rename(old_file, new_file)
+  os.copyfile(old_file, new_file)
 end
 
 function Pkg:before_configure(ccpkg, opt)
@@ -33,6 +33,7 @@ function Pkg:before_configure(ccpkg, opt)
         opt.args[i] = "android-x86_64"
       end
     end
+    table.insert(opt.args, "-D__ANDROID_API__=" .. ccpkg.platform.api_level)
     table.insert(opt.envs, "ANDROID_NDK_HOME=" .. ccpkg.platform.ndk_home)
   end
 end
