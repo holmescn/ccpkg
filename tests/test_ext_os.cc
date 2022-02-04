@@ -5,44 +5,37 @@ struct ExtOsTestFixture : public TestFixture {
 
 };
 
-TEST_CASE_METHOD( ExtOsTestFixture, "argument check", "[ext.os]") {
-  SECTION("cmd field must exists") {
-    REQUIRE ( run("os.run {} ") != LUA_OK );
-    REQUIRE ( error() == "/tmp/test.lua:1: bad field `cmd`: string expected, got nil" );
-  }
-
-  SECTION("cmd field must be string") {
-    REQUIRE ( run("os.run {cmd=1} ") != LUA_OK );
-    REQUIRE ( error() == "/tmp/test.lua:1: bad field `cmd`: string expected, got number" );
-    REQUIRE ( run("os.run {cmd=true} ") != LUA_OK );
-    REQUIRE ( error() == "/tmp/test.lua:1: bad field `cmd`: string expected, got boolean" );
-    REQUIRE ( run("os.run {cmd={}} ") != LUA_OK );
-    REQUIRE ( error() == "/tmp/test.lua:1: bad field `cmd`: string expected, got table" );
-  }
-  SECTION("out field must be string") {
-    REQUIRE ( run("os.run {cmd='', out=1} ") != LUA_OK );
-    REQUIRE ( error() == "/tmp/test.lua:1: bad field `out`: string expected, got number" );
-    REQUIRE ( run("os.run {cmd='', out=true} ") != LUA_OK );
-    REQUIRE ( error() == "/tmp/test.lua:1: bad field `out`: string expected, got boolean" );
-    REQUIRE ( run("os.run {cmd='', out={}} ") != LUA_OK );
-    REQUIRE ( error() == "/tmp/test.lua:1: bad field `out`: string expected, got table" );
-  }
-  SECTION("args field is required") {
-    REQUIRE ( run("os.run {cmd='/bin/ls'} ") != LUA_OK );
-    REQUIRE ( error() == "/tmp/test.lua:1: bad field `args`: table expected, got nil" );
-  }
-  SECTION("each element of `args` must be string") {
-    REQUIRE ( run("os.run {cmd='/bin/ls', args={1, 2, 3}} ") != LUA_OK );
-    REQUIRE ( error() == "/tmp/test.lua:1: bad element #1 of `args`: string expected, got number" );
-  }
-  SECTION( "envs element should be string" ) {
-    REQUIRE ( run("os.run {cmd='/bin/ls', args={'-l', '-a'}, envs={1,2,3}} ") != LUA_OK );
-    REQUIRE ( error() == "/tmp/test.lua:1: bad element #1 of `envs`: string expected, got number" );
-  }
+TEST_CASE_METHOD( ExtOsTestFixture, "os.search_path", "[ext.os]") {
+  REQUIRE ( run("x = os.search_path('bash') ") == LUA_OK );
+  REQUIRE ( G_value("x") == "/usr/bin/bash" );
 }
 
-TEST_CASE_METHOD( ExtOsTestFixture, "example", "[os.run]") {
-  REQUIRE ( run("os.run {cmd='/bin/ls', args={'-l', '-a'}}") == LUA_OK );
-  REQUIRE ( run("os.run {cmd='/bin/ls', args={'-l', '-a'}, envs={'V=1', 'V=2'}, out='ls.log'}") == LUA_OK );
-  REQUIRE ( fs::exists("ls.log") );
+TEST_CASE_METHOD( ExtOsTestFixture, "os.run", "[ext.os]") {
+  SECTION("only accept table-style argument") {
+    REQUIRE ( run("os.run('bash', 1, 2) ") != LUA_OK );
+    REQUIRE ( error() == "/tmp/test.lua:1: bad argument #1 to 'run' (table expected, got string)" );
+  }
+  SECTION("one of cmd or exe is needed") {
+    REQUIRE ( run("os.run {} ") != LUA_OK );
+    REQUIRE ( error() == "/tmp/test.lua:1: one of `cmd` or `exe` is needed" );
+  }
+  SECTION("exe style need args") {
+    REQUIRE ( run("os.run {exe='/usr/bin/bash'} ") != LUA_OK );
+    REQUIRE ( error() == "/tmp/test.lua:1: bad argument #args: table expected, got nil" );
+  }
+  SECTION("cmd-style") {
+    SECTION("command not found") {
+      REQUIRE ( run("ok, _ = os.run {cmd='invalid-command'} ") != LUA_OK );
+      REQUIRE ( error() == "/tmp/test.lua:1: error: execve failed: No such file or directory" );
+    }
+    SECTION("specify start_dir") {
+      REQUIRE ( run("ok, r = os.run {cmd='ls', start_dir='/tmp', out='test.log'}\nexit_code=r.exit_code ") == LUA_OK );
+      REQUIRE ( G_value("ok") == "true" );
+      REQUIRE ( G_value("exit_code") == "0" );
+    }
+    SECTION("capture") {
+      REQUIRE ( run("ok, r = os.run {cmd='ls', out='capture'}\ntext=r.stderr ") == LUA_OK );
+      REQUIRE ( G_value("text") == "" );
+    }
+  }
 }

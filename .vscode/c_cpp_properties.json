@@ -4,15 +4,14 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}/**",
-                "${vcpkgRoot}/x64-linux/include",
-                "/usr/include/lua5.3"
+                "/usr/include/**",
+                "/tmp/ccpkg-dev/**"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/clang",
             "cStandard": "c11",
             "cppStandard": "c++17",
-            "intelliSenseMode": "linux-clang-x64",
-            "configurationProvider": "go2sh.cmake-integration"
+            "intelliSenseMode": "linux-clang-x64"
         }
     ],
     "version": 4

@@ -4,20 +4,24 @@ project(ccpkg VERSION 1.0.0 DESCRIPTION "A vcpkg-like" LANGUAGES C CXX)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
+set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 
 find_package(Lua REQUIRED)
+find_package(Threads REQUIRED)
+find_package(Boost COMPONENTS filesystem REQUIRED)
 
 include_directories(${LUA_INCLUDE_DIR})
+include_directories(${Boost_INCLUDE_DIR})
 
 option(DEV "development mode" OFF)
 
-add_library(ext_os STATIC src/libext_os.cc)
-target_link_libraries(
-  ext_os
-
-  PRIVATE
-  ${LUA_LIBRARIES}
-)
+add_library(ext_os
+  STATIC
+  src/libext_os.cc
+  src/libext_os_run.cc
+  src/libext_os_path.cc)
+target_link_libraries(ext_os PRIVATE ${LUA_LIBRARIES})
 
 if (DEV)
   include(FetchContent)
@@ -30,7 +34,14 @@ if (DEV)
   list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_BINARY_DIR}/_deps/catch2-src/extras")
 
   add_executable(tests tests/test_ext_os.cc)
-  target_link_libraries(tests PRIVATE ext_os ${LUA_LIBRARIES} Catch2::Catch2WithMain)
+  target_link_libraries(
+    tests
+    PRIVATE
+    ext_os
+    Threads::Threads
+    ${LUA_LIBRARIES}
+    ${Boost_LIBRARIES}
+    Catch2::Catch2WithMain)
 
   include(CTest)
   include(Catch)
@@ -40,9 +51,11 @@ else()
   target_link_libraries(
     ccpkg
 
-    PRIVATE
+    LINK_PUBLIC
     ext_os
+    Threads::Threads
     ${LUA_LIBRARIES}
+    ${Boost_LIBRARIES}
   )
 
   #if (LINUX OR UNIX)

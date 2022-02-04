@@ -1,3 +1,0 @@
-local shell = {}
-
-return shell

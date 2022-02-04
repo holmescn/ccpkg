@@ -1,10 +1,11 @@
 local ccpkg = require "ccpkg"
 
-function ccpkg:install_pkg(pkg)
-  -- TODO handle depends of the pkg
+function ccpkg:install_pkg(name, version)
+  local pkg = ccpkg:require_pkg(name)
+  pkg.data = {}
 
-  if not self:check_downloaded(pkg) then
-    self:download(pkg)
+  if not self:check_downloaded(pkg, version) then
+    self:download(pkg, version)
   end
   self:extract(pkg)
   print(">>> source dir: " .. pkg.src_dir)
@@ -34,6 +35,9 @@ function ccpkg:install_pkg(pkg)
       print((">>> %s on %s is installed"):format(opt.versioned_name, opt.arch_platform))
     end
   end
+end
+
+function ccpkg:execute_step(step_name, opt, suffix)
 end
 
 function ccpkg:build_process(opt, debug)

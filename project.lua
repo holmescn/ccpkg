@@ -6,20 +6,7 @@ return {
     native_api_level=23
   },
   dependencies={
-    bzip2={
-      version='1.0.8'
-    },
-    libffi={
-      version='latest'
-    },
-    liblzma={
-      version='latest'
-    },
-    sqlite3={
-      version='latest'
-    },
-    openssl={
-      version='latest'
-    },
+    bzip2="1.0.8",
+    libffi="latest",
   }
 }

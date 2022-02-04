@@ -1,6 +1,6 @@
 local ccpkg = require "ccpkg"
 
-local function cmd(args)
+return function (args)
   ccpkg.project = ccpkg:load_project("project.lua")
   local platform = ccpkg.project.target.platform
 
@@ -12,13 +12,9 @@ local function cmd(args)
   ccpkg.dirs = ccpkg:create_dirs()
   ccpkg.platform = require("platform." .. platform):init()
 
-  for pkg_name, desc in pairs(ccpkg.project.dependencies) do
-    ccpkg:check_pkg_exists(pkg_name)
-  
-    local pkg = require(pkg_name)
-    ccpkg:check_version(pkg, desc.version)
-  
-    ccpkg:install_pkg(pkg)  
+  local pkg_list = ccpkg:create_pkg_list()
+  for _, x in ipairs(pkg_list) do
+    local name, version = x:match("^(.*):(.*)$")
+    ccpkg:install_pkg(name, version)
   end
 end
-return cmd

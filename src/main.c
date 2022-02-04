@@ -10,7 +10,7 @@
 
 #define LUA_PROGNAME "ccpkg"
 
-LUAMOD_API int luaopen_ext_os (lua_State *L);
+LUAMOD_API void luaopen_ext_os (lua_State *L);
 
 static const char *progname = LUA_PROGNAME;
 

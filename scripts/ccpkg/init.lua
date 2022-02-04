@@ -41,6 +41,75 @@ function ccpkg:create_dirs()
   return dirs
 end
 
+local function pkg_cmp(a, b)
+  local split_pattern = "^(.*):(.*)$"
+  local a_name, a_version = a:match(split_pattern)
+  local b_name, b_version = b:match(split_pattern)
+  if a_name == b_name then
+    local pkg = ccpkg:require_pkg(a_name)
+    if pkg['version_cmp'] then
+      return pkg.version_cmp(a_version, b_version)
+    else
+      return a_version < b_version
+    end
+  else
+    -- local pkg_a = ccpkg:require_pkg(a_name)
+    -- local pkg_b = ccpkg:require_pkg(b_name)
+    return a_name < b_name
+  end
+end
+
+function ccpkg:create_pkg_list()
+  local pkg_list = {}
+  local loaded_pkg = {}
+  for pkg_name, r in pairs(self.project.dependencies) do
+    local pkg = self:require_pkg(pkg_name)
+    local version = self:check_pkg_version(pkg, r)
+    if loaded_pkg[pkg_name] then
+      if version ~= loaded_pkg[pkg_name] then
+        error(("%s version conflict: %s <-> %s"):format(pkg_name, version, loaded_pkg[pkg_name]))
+      end
+    else
+      loaded_pkg[pkg_name] = version
+      table.insert(pkg_list, pkg_name .. ":" .. version)
+    end
+  end
+  table.sort(pkg_list, pkg_cmp)
+  return pkg_list
+end
+
+function ccpkg:require_pkg(pkg_name)
+  local status, pkg = pcall(require, "ports." .. pkg_name)
+  if not status then
+    error(pkg_name .. " not found in " .. self.ports_dir)
+  end
+  return pkg
+end
+
+function ccpkg:check_pkg_version(pkg, requirement)
+  local version = ''
+  if type(requirement) == "string" then
+    version = requirement
+  elseif type(requirement) == "table" then
+    version = requirement.version
+  else
+    error("invalid pkg requirement")
+  end
+
+  local version_info = pkg.versions[version]
+  if not version then
+    error(pkg.name .. " do not have version " .. version)
+  end
+
+  -- process 'latest' version
+  if type(version_info) == "string" then
+    version = version_info
+    version_info = pkg.versions[version]
+  end
+
+  return version
+end
+
 function ccpkg:create_opt(pkg, arch)
   local o = {pkg=pkg}
   o.version = pkg.current.version
@@ -54,64 +123,30 @@ function ccpkg:create_opt(pkg, arch)
   return o
 end
 
-function ccpkg:cmd_exists(cmd_name)
-  local cmd = ("which %s > /dev/null"):format(cmd_name)
-  local exists = os.execute(cmd)
-  return exists
-end
+function ccpkg:check_downloaded(pkg, version)
+  local version_info = pkg.versions[versions]
+  pkg.data.downloaded = pkg.data.downloaded or {}
 
-function ccpkg:cmd_paths(cmd_name)
-  local handle = io.popen("which " .. cmd_name)
-  local result = handle:read("*all"):trim()
-  handle:close()
-
-  if result ~= "" then
-    local bin_path = result:gsub("(.*)/[^/]*$", "%1")
-    return result, bin_path
-  end
-end
-
-function ccpkg:check_pkg_exists(pkg_name)
-  local pkg_path = os.path.join {ccpkg.ports_dir, pkg_name}
-  if os.path.exists(pkg_path) then
-    local pkg_init_file = os.path.join(pkg_path, "init.lua")
-    assert(os.path.exists(pkg_init_file), "no init.lua found in " .. pkg_path)
-  else
-    local pkg_lua_file = os.path.join(ccpkg.ports_dir, pkg_name .. ".lua")
-    assert(os.path.exists(pkg_lua_file), "unknown pkg " .. pkg_name)  
-  end
-end
-
-function ccpkg:check_version(pkg, version)
-  local v = pkg.versions[version]
-  assert(v, ("unknown version '%s' of %s"):format(version, pkg.name))
-  while type(v) == "string" do
-    version = v
-    v = pkg.versions[version]
-  end
-  pkg.current = table.clone(v)
-  pkg.current.version = version
-end
-
-function ccpkg:check_downloaded(pkg)
-  pkg.current.downloaded = pkg.current.downloaded or {}
-
-  local filename = pkg.current.filename
-  if not filename then
-    if pkg.current.url then
-      filename = pkg.current.url:match("/([^/]+)$")
-    end
+  local filename = ''
+  if version_info.filename then
+    filename = version_info.filename
+  elseif version_info.url then
+    filename = version_info.url:match("/(.*)$")
+  elseif pkg.filename_pattern then
+    filename = pkg.filename_pattern:fmt {version=version}
+  elseif pkg.url_pattern then
+    local url = pkg.url_pattern:fmt{version=version}
+    filename = url:match("/(.*)$")
   end
   assert(filename, "invalid filename")
-  pkg.current.downloaded.filename = filename
+  pkg.data.downloaded.filename = filename
+  pkg.data.downloaded.full_path = os.path.join(self.dirs.downloads, filename)
 
-  pkg.current.downloaded.full_path = os.path.join(self.dirs.downloads, filename)
-
-  if os.path.exists(pkg.current.downloaded.full_path) then
-    if self:checksum(pkg) then
+  if os.path.exists(pkg.data.downloaded.full_path) then
+    if self:checksum(pkg, version) then
       return true
     end
-    os.remove(pkg.current.downloaded.full_path)
+    os.remove(pkg.data.downloaded.full_path)
   end
   return false
 end

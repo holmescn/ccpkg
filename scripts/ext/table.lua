@@ -28,28 +28,9 @@ function table.dump(o, indent)
   end
 end
 
-function table.clone(o)
-  if type(o) == "table" then
-    local n = {}
-    for k, v in pairs(o) do
-      n[k] = table.clone(v)
-    end
-    return n
-  else
-    return o
-  end
-end
-
 function table.contains(t, v)
   for _, e in ipairs(t) do
     if e == v then return true end
   end
   return false
-end
-
-function table.append(t1, t2)
-  for _, v in ipairs(t2) do
-    table.insert(t1, v)
-  end
-  return t1
 end

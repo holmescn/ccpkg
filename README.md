@@ -3,12 +3,13 @@
 ## `ccpkg install` command
 
 1. load `project.lua` file and do init
-2. build dependency tree
+2. for each element in `project.dependencies`
   1. check pkg port exists
   2. check pkg version exists
-  3. check pkg version conflict
-  4. sort the dependency tree
-3. traverse the dependency tree
+  3. generate a build list
+  4. sort the build list
+  5. check conflict
+3. for each element in build list
   1. download the source file
   2. extract the source if it is a tarball
   3. execute build process for single pkg

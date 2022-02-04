@@ -7,8 +7,7 @@
 
 namespace fs = std::filesystem;
 
-LUAMOD_API int luaopen_fs (lua_State *L);
-LUAMOD_API int luaext_os (lua_State *L);
+LUAMOD_API void luaopen_ext_os (lua_State *L);
 
 struct TestFixture {
   const char *filename = "/tmp/test.lua";
@@ -16,9 +15,7 @@ struct TestFixture {
   TestFixture () {
     L = luaL_newstate();
     luaL_openlibs(L);
-    luaL_requiref(L, "fs", luaopen_fs, 1);
-    lua_pop(L, 1);
-    luaext_os(L);
+    luaopen_ext_os(L);
   }
   ~TestFixture () {
     lua_close(L);
