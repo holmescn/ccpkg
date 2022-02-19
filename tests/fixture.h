@@ -7,48 +7,14 @@
 
 namespace fs = std::filesystem;
 
-LUAMOD_API void luaopen_ext_os (lua_State *L);
-
 struct TestFixture {
   const char *filename = "/tmp/test.lua";
   lua_State *L;
-  TestFixture () {
-    L = luaL_newstate();
-    luaL_openlibs(L);
-    luaopen_ext_os(L);
-  }
-  ~TestFixture () {
-    lua_close(L);
-    fs::remove(filename);
-  }
-  inline int run(const std::string code) {
-    std::ofstream o(filename, std::ios::trunc);
-    o << code;
-    o.close();
-    return luaL_dofile(L, filename);
-  }
-  inline std::string error() {
-    int top = lua_gettop(L);
-    std::string e = lua_tostring(L, top);
-    lua_pop(L, top);
-    return e;
-  }
-
-  inline std::string G_type(const char *name) {
-    std::string t;
-    lua_getglobal(L, name);
-    t = lua_typename(L, lua_type(L, -1));
-    lua_pop(L, 1);
-    return t;
-  }
-
-  std::string G_value(const char *name) {
-    std::string v;
-    lua_getglobal(L, "tostring");
-    lua_getglobal(L, name);
-    lua_call(L, 1, 1);
-    v = lua_tostring(L, -1);
-    lua_pop(L, 1);
-    return v;
-  }
+  TestFixture();
+  ~TestFixture();
+  int run(const std::string &code);
+  std::string error();
+  std::string type(const char *name);
+  std::string value(const char *name);
+  std::string value(const char *name, const char *field);
 };

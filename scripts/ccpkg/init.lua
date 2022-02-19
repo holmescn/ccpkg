@@ -2,40 +2,25 @@ local ccpkg = {
   root_dir=os.getenv("CCPKG_ROOT"),
   ports_dir=os.path.join(os.getenv("CCPKG_ROOT"), "ports"),
   scripts_dir=os.path.join(os.getenv("CCPKG_ROOT"), "scripts"),
-  mt={}
 }
-setmetatable(ccpkg, ccpkg.mt)
 
-ccpkg.mt.__index = function (t, k)
-  local s = os.path.join(ccpkg.scripts_dir, "ccpkg", k .. ".lua")
-  if os.path.exists(s) then
-    return require ("ccpkg." .. k)
+function ccpkg:create_dirs(project_dir)
+  local dirs = {project_dir=project_dir}
+  local root_dir = os.path.join(project_dir, ".ccpkg")
+  if not os.path.exists(root_dir) then
+     os.mkdirs(root_dir)
   end
-end
+  dirs['.ccpkg'] = root_dir
 
-function ccpkg:load_project(filename)
-  self.project_file = os.path.join {os.curdir(), filename}
-  assert(os.path.exists(self.project_file), self.project_file .. " not exists")
-  return dofile(self.project_file)
-end
-
-function ccpkg:create_dirs()
-  local dirs = {}
-  dirs.working_dir = os.path.join {os.curdir(), '.ccpkg'}
-  if not os.path.exists(dirs.working_dir) then
-     os.mkdirs(dirs.working_dir)
-  end
-
-  dirs.tmp = os.path.join(dirs.working_dir, 'tmp')
-  dirs.downloads = os.path.join(dirs.working_dir, 'downloads')
-  dirs.installed = os.path.join(dirs.working_dir, 'installed')
-
-  if os.path.exists(dirs.tmp) then
-    os.rmdirs(dirs.tmp)
-  end
+  dirs.tmp = os.path.join(root_dir, 'tmp')
+  dirs.downloads = os.path.join(root_dir, 'downloads')
+  dirs.installed = os.path.join(root_dir, 'installed')
+  dirs.packages = os.path.join(root_dir, 'packages')
 
   for _, dir in pairs(dirs) do
-    os.mkdirs(dir)
+    if not os.path.exists(dir) then
+      os.mkdirs(dir)
+    end
   end
 
   return dirs

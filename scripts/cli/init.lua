@@ -1,16 +1,17 @@
 local argparse = require '3rdparty.argparse'
-local parser = argparse("ccpkg", "An better vcpkg.")
+local parser = argparse("ccpkg", "A better vcpkg.")
+  :command_target("command")
 
--- install dependencies described in project.lua
-parser:command("install")
+parser:flag("-v --verbose", "Sets verbosity level.")
+  :count "0-2"
+  :target "verbosity"
 
-local function execute_cmd(name)
-  local cmd = require("cli." .. name)
-  cmd(args)
-end
+local install_cmd = parser:command("install i", "Install the project")
+install_cmd:option "-c" "--project_file"
+  :description "Specify the project file."
+  :default "project.lua"
 
 local args = parser:parse(ARGS)
 
-if args.install then
-  execute_cmd("install")
-end
+local cmd = require("cli." .. args.command)
+cmd(args)

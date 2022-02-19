@@ -66,6 +66,12 @@
     "variant": "cpp",
     "csignal": "cpp",
     "complex": "cpp",
-    "typeindex": "cpp"
+    "typeindex": "cpp",
+    "*.inc": "cpp",
+    "*.ipp": "cpp",
+    "strstream": "cpp",
+    "unordered_set": "cpp",
+    "cfenv": "cpp",
+    "valarray": "cpp"
   }
 }

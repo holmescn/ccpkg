@@ -11,9 +11,8 @@ function string:split(sep)
   return t
 end
 
-function string:fmt(o)
-  local s = self:gsub("$(%w+)", function (n)
-    return o[n] and o[n] or '$' .. n
+function string:fmt(t)
+  return self:gsub("$(%w+)", function (name)
+    return t[name] and t[name] or '$' .. name
   end)
-  return s
 end

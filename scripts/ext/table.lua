@@ -34,3 +34,27 @@ function table.contains(t, v)
   end
   return false
 end
+
+function table.sorted_pairs(t)
+  local keys = {}
+  for k, _ in pairs(t) do
+    table.insert(keys, k)
+  end
+  table.sort(keys)
+
+  local i = 0
+  local n = #keys
+  return function ()
+    i = i + 1
+    if i <= n then return keys[i], t[keys[i]] end
+  end
+end
+
+function table.iterate(t)
+  local i = 0
+  local n = #t
+  return function(t)
+    i = i + 1
+    if i <= n then return t[i] end
+  end, t
+end

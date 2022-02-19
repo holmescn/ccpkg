@@ -10,7 +10,7 @@
 
 #define LUA_PROGNAME "ccpkg"
 
-LUAMOD_API void luaopen_ext_os (lua_State *L);
+LUAMOD_API void luaext_os (lua_State *L);
 
 static const char *progname = LUA_PROGNAME;
 
@@ -59,9 +59,7 @@ int main (int argc, char **argv) {
 
   luaL_checkversion(L);  /* check that interpreter has correct version */
   luaL_openlibs(L);
-
-  /* extend os library */
-  luaopen_ext_os(L);
+  luaext_os(L); /* extend os */
 
   createargtable(L, argc, argv);
 

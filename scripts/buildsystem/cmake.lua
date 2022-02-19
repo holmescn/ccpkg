@@ -1,29 +1,12 @@
-local ccpkg = require "ccpkg"
-local CMake = {
-  paths={}
+local BuildSystem = require "buildsystem"
+local CMake = BuildSystem:new {
+  name='cmake'
 }
 
 function CMake:init(pkg)
-  local cmake, cmake_path = ccpkg:cmd_paths("cmake")
-  assert(cmake, "no cmake found in current $PATH")
-  self.cmake = cmake
-  if not table.contains(self.paths, cmake_path) then
-    table.insert(self.paths, cmake_path)
-  end
-
-  if ccpkg:cmd_exists('ninja') then
-    local ninja, ninja_path = ccpkg:cmd_paths("ninja")
-    if not table.contains(self.paths, ninja_path) then
-      table.insert(self.paths, ninja_path)
-    end
-    self.ninja = ninja
-  end
+  self.cmake_path = os.which("cmake")
+  self.ninja_path = os.which("ninja")
   return self
-end
-
-function CMake:start(opt)
-  ccpkg.platform:cmake(opt)
-  opt.envs = ccpkg:transform_envs({PATH=self.paths})
 end
 
 function CMake:options_to_args(options)

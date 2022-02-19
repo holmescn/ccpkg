@@ -1,5 +1,6 @@
-local ccpkg = require "ccpkg"
-local ConfigureMake = {
+local BuildSystem = require "buildsystem"
+local ConfigureMake = BuildSystem:new {
+  name="configure_make",
   paths={},
   executables={}
 }

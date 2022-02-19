@@ -1,31 +1,47 @@
-local ccpkg = require "ccpkg"
 local Download = {}
 
-function Download:detect_downloader()
-  if self.downloader then return end
+function Download:checksum(pkg, full_path)
+  local hash_type, hash_value = pkg.hash:match("sha(%d+):(%w+)")
 
-  if ccpkg:cmd_exists("curl") then
-    self.downloader = 'curl'
-  end
-  assert(self.downloader, "no downloader found")
+  local filename = full_path .. ".sha" .. hash_type
+  io.output(filename)
+  io.write(("%s  %s"):format(hash_value, full_path))
+  io.close()
+
+  local ret = os.run("shasum -a " .. hash_type .. " " .. filename, {shell=1})
+  os.remove(filename)
+
+  return ret.exit_code == 0
 end
 
-function Download:url(pkg)
-  self:detect_downloader()
+function Download:url(pkg, url)
+  local filename = os.path.basename(url)
+  local full_path = os.path.join(pkg.dirs.downloads, filename)
 
-  local url = pkg.current.url
-  if self.downloader == "curl" then
-    local cmd = ("%s -o %s %s"):format(self.downloader, pkg.current.downloaded.full_path, url)
+  if os.path.exists(full_path) then
+    -- TODO check file size
+    if self:checksum(pkg, full_path) then
+      return
+    end
+    os.remove(full_path)
+  end
+
+  local curl_path = os.which("curl")
+  if curl_path then
+    local cmd = ("%s -o %s %s"):format(curl_path, full_path, url)
     assert(os.execute(cmd), ("download %s failed"):format(url))
   end
-  assert(os.path.exists(pkg.current.downloaded.full_path), ("download %s failed"):format(url))
-  assert(ccpkg:checksum(pkg), "the downloaded file is corrupted")
+  assert(self:checksum(pkg, full_path), ("download %s failed"):format(url))
+  pkg.data.downloaded = full_path
 end
 
-function ccpkg:download(pkg)
-  if pkg.current.url then
-    Download:url(pkg)
+function Download:execute(pkg)
+  if pkg.url_pattern then
+    local url = pkg.url_pattern:fmt {version=pkg.version}
+    self:url(pkg, url)
+  elseif pkg.url then
+    self:url(pkg, pkg.url)
   end
 end
 
-return ccpkg.download
+return Download
