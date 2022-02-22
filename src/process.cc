@@ -3,6 +3,7 @@
 */
 #include <cstdio>
 #include <cstring>
+#include <array>
 #include <sstream>
 #include <filesystem>
 #include <fcntl.h>
@@ -121,13 +122,26 @@ void Process::init(lua_State *L) {
     while (lua_next(L, t) != 0) {
       /* uses 'key' (at index -2) and 'value' (at index -1) */
       const char *key = lua_tostring(L, -2);
-      lua_pushfstring(L, "%s=%s", key, lua_tostring(L, -1));
-      envs[key] = lua_tostring(L, -1);
-      lua_pop(L, 1);
+      if (lua_type(L, -1) == LUA_TTABLE) {
+        lua_getglobal(L, "table");
+        lua_getfield(L, -1, "concat");
+        lua_pushvalue(L, -3);
+        lua_pushstring(L, ":");
+        lua_call(L, 2, 1);
+
+        lua_pushfstring(L, "%s=%s", key, lua_tostring(L, -1));
+        envs[key] = lua_tostring(L, -1);
+        lua_pop(L, 3);
+      } else {
+        lua_pushfstring(L, "%s=%s", key, lua_tostring(L, -1));
+        envs[key] = lua_tostring(L, -1);
+        lua_pop(L, 1);
+      }
+
       /* removes 'value'; keeps 'key' for next iteration */
       lua_pop(L, 1);
     }
-  } else if (lua_type(L, -1) != LUA_TNIL) {
+  } else if ( !lua_isnil(L, -1) ) {
     lua_pushfstring(L, "bad element 'env' in argument #2 to 'run' (string expected, got %s)", luaL_typename(L, -1));
     throw std::runtime_error(lua_tostring(L, -1));
   }
@@ -136,6 +150,19 @@ void Process::init(lua_State *L) {
   if (exe.find('/') == std::string::npos) {
     exe = which(L, exe);
   }
+
+  std::stringstream ss_cmd;
+  for (int i = 0; i < args.size(); ++i) {
+    if (args[i].find(' ') == std::string::npos) {
+      ss_cmd << args[i];
+    } else {
+      ss_cmd << '"' << args[i] << '"';
+    }
+    if (i < args.size() - 1) {
+      ss_cmd << " ";
+    }
+  }
+  this->cmd = ss_cmd.str();
 }
 
 int Process::exec(lua_State *L) {
@@ -218,19 +245,24 @@ int Process::fork_parent(lua_State *L)
     lua_setfield(L, -2, "exit_reason");
 
     if (check && exit_code != 0) {
-      lua_pushfstring(L, "'run' exit with code %d", exit_code);
+      lua_pushfstring(L, "'run' exit with %d", exit_code);
       throw std::runtime_error(lua_tostring(L, -1));
     }
   }
 
   if (WIFSIGNALED(status)) {
-    int signal_no = WTERMSIG(status);
+    int signal_num = WTERMSIG(status);
     // printf("pid = %d, check = %d, signal %d\n", child_pid, check, signal_no);
 
-    lua_pushinteger(L, signal_no);
+    lua_pushinteger(L, signal_num);
     lua_setfield(L, -2, "signal");
     lua_pushstring(L, "signal");
     lua_setfield(L, -2, "exit_reason");
+
+    if (check) {
+      lua_pushfstring(L, "'run' exit with signal %d", signal_num);
+      throw std::runtime_error(lua_tostring(L, -1));
+    }
   }
 
   return 1;
@@ -238,16 +270,20 @@ int Process::fork_parent(lua_State *L)
 
 void Process::fork_child(void)
 {
+  int i;
   std::vector<const char *> argv(args.size()+1, nullptr);
   std::vector<const char *> envp(envs.size()+1, nullptr);
 
-  for (auto &kv : envs) {
-    envp.push_back(kv.second.data());
-  }
-
-  for (auto i = 0; i < args.size(); ++i) {
+  for (i = 0; i < args.size(); ++i) {
     argv[i] = args[i].data();
   }
+
+  i = 0;
+  for (auto &kv : envs) {
+    envp[i++] = kv.second.data();
+  }
+
+  fs::current_path(cwd);
 
   if (capture_output) {
     /* 0 - r, 1 - w */
@@ -282,10 +318,13 @@ void Process::fork_child(void)
         perror("dup2(fd, STDERR_FILENO):");
         exit(EXIT_FAILURE);
       }
+
+      printf("PWD=%s\n", cwd.c_str());
+      printf("%s\n", envs["PATH"].c_str());
+      printf("%s\n\n", cmd.c_str());
     }
   }
 
-  fs::current_path(cwd);
   if (execve(exe.data(), const_cast<char* const*>(argv.data()), const_cast<char* const*>(envp.data())) == -1) {
     perror("execve():");
     exit(0);

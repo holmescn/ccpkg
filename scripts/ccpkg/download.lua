@@ -17,6 +17,7 @@ end
 function Download:url(pkg, url)
   local filename = os.path.basename(url)
   local full_path = os.path.join(pkg.dirs.downloads, filename)
+  pkg.data.downloaded = full_path
 
   if os.path.exists(full_path) then
     -- TODO check file size
@@ -32,7 +33,6 @@ function Download:url(pkg, url)
     assert(os.execute(cmd), ("download %s failed"):format(url))
   end
   assert(self:checksum(pkg, full_path), ("download %s failed"):format(url))
-  pkg.data.downloaded = full_path
 end
 
 function Download:execute(pkg)

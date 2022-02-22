@@ -100,15 +100,24 @@ static int ext_os_rmdirs(lua_State *L) {
 static int ext_os_listdir(lua_State *L) {
   const char *s = luaL_checkstring(L, 1);
 
-  int i = 0;
-  lua_newtable(L);
-  for (const auto& dir_entry : std::filesystem::directory_iterator{s}) {
-    const auto &p = dir_entry.path();
-    lua_pushstring(L, p.c_str());
-    lua_seti(L, -2, ++i);
+  {
+    auto start = fs::path(s);
+    try {
+      int i = 0;
+      lua_newtable(L);
+      for (const auto& dir_entry : std::filesystem::directory_iterator{start}) {
+        const auto p = fs::relative(dir_entry.path(), start);
+        lua_pushstring(L, p.c_str());
+        lua_seti(L, -2, ++i);
+      }
+    } catch (const std::exception &e) {
+      lua_pushstring(L, e.what());
+      goto error;
+    }
   }
-
   return 1;
+
+  THROW_LUA_ERROR;
 }
 
 struct copy_option_entry {
@@ -346,6 +355,9 @@ static int ext_os_path_dirname (lua_State *L) {
   {
     try {
       std::string s = fs::path(path).remove_filename();
+      if (s.back() == '/') {
+        s.back() = '\0';
+      }
       lua_pushstring(L, s.c_str());
     } catch (const std::exception &e) {
       lua_pushstring(L, e.what());
@@ -355,6 +367,46 @@ static int ext_os_path_dirname (lua_State *L) {
   return 1;
 
   THROW_LUA_ERROR;
+}
+
+static int ext_os_path_splitext (lua_State *L) {
+  const char *filename = luaL_checkstring(L, 1);
+
+  {
+    try {
+      std::string stem = fs::path(filename).stem();
+      std::string ext = fs::path(filename).extension();
+      lua_pushstring(L, stem.c_str());
+      lua_pushstring(L, ext.c_str());
+    } catch (const std::exception &e) {
+      lua_pushstring(L, e.what());
+      goto error;
+    }
+  } /* c++ objects are destructed here */
+  return 2;
+
+  THROW_LUA_ERROR;
+}
+
+static int ext_os_path_snapshot (lua_State *L) {
+  const char *s = luaL_checkstring(L, 1);
+
+  {
+    auto start = fs::path(s);
+    try {
+      int i = 0;
+      lua_newtable(L);
+      for (auto const& dir_entry : fs::recursive_directory_iterator(start)) {
+        if (dir_entry.is_directory()) continue;
+        const auto p = fs::relative(dir_entry.path(), start);
+        lua_pushstring(L, p.c_str());
+        lua_seti(L, -2, ++i);
+      }
+    } catch (const std::exception &e) {
+      // nothing to do, just return empty table
+    }
+  }
+  return 1;
 }
 
 /*
@@ -381,6 +433,8 @@ LUAMOD_API void luaext_os (lua_State *L) {
     { "realpath", ext_os_path_realpath },
     { "basename", ext_os_path_basename },
     { "dirname", ext_os_path_dirname },
+    { "splitext", ext_os_path_splitext },
+    { "snapshot", ext_os_path_snapshot },
     { NULL, NULL }
   };
 

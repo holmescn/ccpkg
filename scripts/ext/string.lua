@@ -16,3 +16,7 @@ function string:fmt(t)
     return t[name] and t[name] or '$' .. name
   end)
 end
+
+function string:join(t)
+  return table.concat(t, self)
+end

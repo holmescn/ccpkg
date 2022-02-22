@@ -1,41 +1,47 @@
-local Pkg = {
+local Args = require "ccpkg.args"
+local Pkg = require "ccpkg.pkg"
+local OpenSSL = Pkg:new {
   name="openssl",
   description="OpenSSL is an open source project that provides a robust, commercial-grade, and full-featured toolkit for the Transport Layer Security (TLS) and Secure Sockets Layer (SSL) protocols. It is also a general-purpose cryptography library.",
   homepage="https://www.openssl.org",
+  url_pattern='https://www.openssl.org/source/openssl-$version.tar.gz',
   versions={
     ["latest"]="1.1.1m",
     ['1.1.1m']={
-      url='https://www.openssl.org/source/openssl-1.1.1m.tar.gz',
       hash='sha256:f89199be8b23ca45fc7cb9f1d8d3ee67312318286ad030f5316aca6462db6c96'
     }
   },
   buildsystem="configure_make"
 }
 
-function Pkg:patch_source(ccpkg, opt)
-  local old_file = os.path.join(opt.src_dir, "Configure")
-  local new_file = os.path.join(opt.src_dir, "configure")
-  os.copyfile(old_file, new_file)
-end
-
-function Pkg:before_configure(ccpkg, opt)
-  if ccpkg.project.target.platform == "android" then
-    for i, v in ipairs(opt.args) do
-      if v == "--host" then
-        opt.args[i] = ""
-      elseif v == "arm-none-linux-android" then
-        opt.args[i] = "android-arm"
-      elseif v == "arm64-none-linux-android" then
-        opt.args[i] = "android-arm64"
-      elseif v == "x86-none-linux-android" then
-        opt.args[i] = "android-x86"
-      elseif v == "x64-none-linux-android" then
-        opt.args[i] = "android-x86_64"
+function OpenSSL:before_configure(opt)
+  local perl_path = os.which("perl")
+  if self.platform.name == "android" then
+    -- use perl instead of sh
+    opt['_args'][1] = opt['_args'][1]:gsub("configure", "Configure")
+    for i, v in ipairs(opt['_args']) do
+      if v:match("^--host=") then
+        table.remove(opt['_args'], i)
+        break
       end
     end
-    table.insert(opt.args, "-D__ANDROID_API__=" .. ccpkg.platform.api_level)
-    table.insert(opt.envs, "ANDROID_NDK_HOME=" .. ccpkg.platform.ndk_home)
+    opt['_args']:append("-D__ANDROID_API__=" .. self.platform.native_api_level)
+
+    if self.arch == "arm" then
+      opt['_args']:append("android-arm")
+    elseif self.arch == "arm64" then
+      opt['_args']:append("android-arm64")
+    elseif self.arch == "x86" then
+      opt['_args']:append("android-x86")
+    elseif self.arch == "x64" then
+      opt['_args']:append("android-x86_64")
+    else
+      error("unsupported android arch: " .. self.arch)
+    end
+
+    opt.args = Args:new {perl_path}
+    opt.args:extend(opt['_args'])
   end
 end
 
-return Pkg
+return OpenSSL

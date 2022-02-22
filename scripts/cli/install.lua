@@ -1,41 +1,20 @@
 local ccpkg = require "ccpkg"
+local Command = {}
 
-local function install_pkg(pkg)
-  if pkg:is_installed() then return end
-  print (("--- build %s-%s on %s-%s"):format(pkg.name, pkg.version, pkg.arch, pkg.platform.name))
+function Command:init(parser)
+  local cmd = parser:command("install i", "Install the project")
+  cmd:option "-c" "--project_file"
+    :description "Specify the project file."
+    :default "project.lua"
+  cmd:option "-j" "--jobs"
+    :description "Allow N jobs at once."
+    :default "2"
 
-  -- local files = os.snapshot_files(pkg.installed_dir)
-
-  pkg:download_source()
-  pkg:unpack_source()
-  pkg:patch_source()
-
-  pkg.platform:execute("before_build_steps", pkg)
-  pkg:before_build_steps()
-  for step in table.iterate {"configure", "build", "install"} do
-    pkg:execute("before_" .. step)
-    pkg.buildsystem:execute('before_' .. step, pkg)
-    pkg.platform:execute(step, pkg)
-    pkg.buildsystem:execute(step, pkg)
-    pkg:execute("after_" .. step)
-    pkg.buildsystem:execute('after_' .. step, pkg)
-  end
-  pkg:after_build_steps()
-  pkg.platform:execute("after_build_steps", pkg)
-  -- pkg:save_package(files)
+  parser.commands = parser.commands or {}
+  parser.commands['install'] = self
 end
 
-local function do_install(dependencies, arch, project, platform)
-  for name, desc in table.sorted_pairs(dependencies) do
-    local pkg = require('ports.' .. name):init(arch, desc)
-    pkg.project = project
-    pkg.platform = platform
-    do_install(pkg.dependencies, arch, project, platform)
-    install_pkg(pkg)
-  end
-end
-
-return function (args)
+function Command:execute(args)
   local project_file = os.path.realpath(args.project_file)
   local project_dir = os.path.dirname(project_file)
   print("--- project dir  " .. project_dir)
@@ -43,11 +22,50 @@ return function (args)
 
   local project = dofile(project_file)
   local platform = require('platform.' .. project.platform):init(project)
+  project.dirs = ccpkg:makedirs(project_dir)
   project.args = args
-  project.dirs = ccpkg:create_dirs(project_dir)
 
   -- TODO resolve dependencies and versions
   for arch in table.iterate(project.arch) do
-    do_install(project.dependencies, arch, project, platform)
+    self:do_install(project.dependencies, arch, project, platform)
   end
 end
+
+function Command:do_install(dependencies, arch, project, platform)
+  for name, desc in table.sorted_pairs(dependencies) do
+    local pkg = require('ports.' .. name):init(arch, desc)
+    pkg.project = project
+    pkg.platform = platform
+    self:do_install(pkg:dependencies(), arch, project, platform)
+    if not pkg:is_installed() then
+      self:install_pkg(pkg)
+    end
+  end
+end
+
+function Command:install_pkg(pkg)
+  print (("--- build %s-%s for %s-%s"):format(pkg.name, pkg.version, pkg.arch, pkg.platform.name))
+
+  pkg:download_source()
+  pkg:unpack_source()
+  pkg:patch_source()
+  pkg:makedirs()
+
+  local files = os.path.snapshot(pkg.install_dir)
+
+  pkg:before_build_steps()
+  for step in table.iterate {"configure", "build", "install"} do
+    local opt = {env=table.clone(pkg.env), check=true}
+    print("--- " .. step .. " step")
+    pkg.platform:execute(step, pkg, opt)
+    pkg.buildsystem:execute_hook('before', step, pkg, opt)
+    pkg:execute_hook("before", step, opt)
+    pkg:execute(step, opt)
+    pkg:execute_hook("after", step, opt)
+    pkg.buildsystem:execute_hook('after', step, pkg, opt)
+  end
+  pkg:after_build_steps()
+  pkg:save_package(files)
+end
+
+return Command

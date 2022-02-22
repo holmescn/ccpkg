@@ -1,4 +1,5 @@
-local BuildSystem = {}
+local BuildSystem = {
+}
 BuildSystem.__index = BuildSystem
 
 function BuildSystem:new(o)
@@ -6,19 +7,23 @@ function BuildSystem:new(o)
   return o
 end
 
-function BuildSystem:execute(step, pkg)
+function BuildSystem:execute(step, pkg, opt)
+  local log_file = os.path.join(pkg.build_base_dir, ("%s-%s-%s.log"):format(
+    (step == "configure" and "config" or step),
+    pkg.arch, pkg.platform.name
+  ))
+  if not opt.capture_output then
+    opt.file = opt.file or log_file
+  end
+  opt.cwd = opt.cwd or pkg.build_dir
+  return os.run(opt.args, opt)
 end
 
-function BuildSystem:configure(pkg)
-  self.execute("configure", pkg)
-end
-
-function BuildSystem:build(pkg)
-  self.execute("build", pkg)
-end
-
-function BuildSystem:install(pkg)
-  self.execute("install", pkg)
+function BuildSystem:execute_hook(prefix, step, pkg, opt)
+  local name = prefix .. "_" .. step
+  if self[name] then
+    self[name](self, pkg, opt)
+  end
 end
 
 return BuildSystem

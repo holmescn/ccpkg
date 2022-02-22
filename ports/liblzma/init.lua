@@ -1,15 +1,16 @@
-local Pkg = {
+local Pkg = require "ccpkg.pkg"
+local LibLzma = Pkg:new {
   name="liblzma",
   description="Compression library with an API similar to that of zlib.",
   homepage="hhttps://github.com/xz-mirror/xz",
+  url_pattern='https://github.com/xz-mirror/xz/releases/download/v$version/xz-$version.tar.bz2',
   versions={
     ["latest"]="5.2.2",
     ['5.2.2']={
-      url='https://github.com/xz-mirror/xz/releases/download/v5.2.2/xz-5.2.2.tar.gz',
-      hash='sha256:73df4d5d34f0468bd57d09f2d8af363e95ed6cc3a4a86129d2f2c366259902a2'
+      hash='sha256:6ff5f57a4b9167155e35e6da8b529de69270efb2b4cf3fbabf41a4ee793840b5'
     }
   },
   buildsystem="configure_make"
 }
 
-return Pkg
+return LibLzma

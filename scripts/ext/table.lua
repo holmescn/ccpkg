@@ -1,4 +1,4 @@
-
+-- Extend table library
 function table.dump(o, indent)
   if type(o) == "table" then
     indent = indent or 1
@@ -28,11 +28,16 @@ function table.dump(o, indent)
   end
 end
 
-function table.contains(t, v)
-  for _, e in ipairs(t) do
-    if e == v then return true end
+function table.clone(o)
+  if type(o) == "table" then
+    local t = {}
+    for k, v in pairs(o) do
+      t[k] = table.clone(v)
+    end
+    return t
+  else
+    return o
   end
-  return false
 end
 
 function table.sorted_pairs(t)
@@ -57,4 +62,20 @@ function table.iterate(t)
     i = i + 1
     if i <= n then return t[i] end
   end, t
+end
+
+function table.index(t, v)
+  for index, value in pairs(t) do
+    if v == value then
+      return index
+    end
+  end
+end
+
+function table.remove_then_insert(t, insert_index, value)
+  local index = table.index(t, value)
+  if index and index ~= insert_index then
+    table.remove(t, index)
+    table.insert(t, insert_index, value)
+  end
 end

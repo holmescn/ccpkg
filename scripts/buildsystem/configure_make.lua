@@ -1,73 +1,38 @@
+local Args = require "ccpkg.args"
 local BuildSystem = require "buildsystem"
 local ConfigureMake = BuildSystem:new {
   name="configure_make",
-  paths={},
-  executables={}
 }
 
-function ConfigureMake:init()
-  local bash, bash_path = ccpkg:cmd_paths("bash")
-  local make, make_path = ccpkg:cmd_paths("make")
-  assert(bash, "bash is not found")
-  assert(make, "make is not found")
-  if not table.contains(self.paths, bash_path) then
-    table.insert(self.paths, bash_path)
-  end
-  if not table.contains(self.paths, make_path) then
-    table.insert(self.paths, make_path)
-  end
-  self.executables.bash = bash
-  self.executables.make = make
+function ConfigureMake:init(pkg)
+  self.sh_path = os.which('sh')
+  self.make_path = os.which('make')
+  assert(self.sh_path, "shell is not found")
+  assert(self.make_path, "make is not found")
   return self
 end
 
-function ConfigureMake:start(opt)
-  ccpkg.platform:configure_make(opt)
-  table.insert(self.paths, 1, os.path.join(ccpkg.platform.llvm_path, "bin"))
-  opt.envs["PATH"] = self.paths
-  opt.envs = ccpkg:transform_envs(opt.envs)
-end
+function ConfigureMake:before_configure(pkg, opt)
+  local relative_to_src = os.path.relpath(pkg.src_dir, pkg.build_dir)
+  opt.args:insert( 1, os.path.join(relative_to_src, "configure") )
+  opt.args:append("--prefix=" .. pkg.install_dir)
 
-function ConfigureMake:configure(opt, debug)
-  local relative_to_src = os.path.relative(opt.src_dir, os.curdir())
-  local args = {
-    os.path.join(relative_to_src, "configure"),
-  }
-  if opt.args then
-    args = table.append(args, opt.args)
-  end
-
-  table.insert(args, "--prefix")
-  local install_dir = ccpkg:install_dir(opt, debug)
-  table.insert(args, install_dir)
-
-  local cmdline = table.concat(args, ' ')
-  args = {
-    self.executables.bash, '-c', cmdline
-  }
-
-  return {
-    cmd=self.executables.bash, args=args, envs=opt.envs
+  opt['_args'] = opt.args
+  opt.args = Args:new {
+    self.sh_path, "-c", table.concat(opt.args, " ")
   }
 end
 
-function ConfigureMake:build(opt, debug)
-  return {cmd=self.executables.make, envs=opt.envs,
-    args={
-      self.executables.make
-    }
+function ConfigureMake:before_build(pkg, opt)
+  opt.args = Args:new {
+    self.make_path, "--jobs", pkg.project.args.jobs
   }
 end
 
-function ConfigureMake:install(opt, debug)
-  return {cmd=self.executables.make, envs=opt.envs,
-    args={
-      self.executables.make, "install"
-    }
+function ConfigureMake:before_install(pkg, opt)
+  opt.args = Args:new {
+    self.make_path, "install"
   }
-end
-
-function ConfigureMake:finalize(opt)
 end
 
 return ConfigureMake
