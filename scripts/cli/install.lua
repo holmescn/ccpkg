@@ -10,7 +10,6 @@ function Command:init(parser)
     :description "Allow N jobs at once."
     :default "2"
 
-  parser.commands = parser.commands or {}
   parser.commands['install'] = self
 end
 
@@ -36,6 +35,7 @@ function Command:do_install(dependencies, arch, project, platform)
     local pkg = require('ports.' .. name):init(arch, desc)
     pkg.project = project
     pkg.platform = platform
+    pkg.data.target = arch .. '-' .. platform.name
     self:do_install(pkg:dependencies(), arch, project, platform)
     if not pkg:is_installed() then
       self:install_pkg(pkg)

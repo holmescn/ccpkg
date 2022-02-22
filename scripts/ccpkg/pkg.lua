@@ -1,4 +1,5 @@
 ---@diagnostic disable: undefined-field
+local ccpkg = require "ccpkg"
 local Pkg = {}
 local function search(t, key)
   local mt = getmetatable(t)
@@ -16,6 +17,7 @@ function Pkg:new(o)
   o.data = {version='', env={}}
   o.data.env['PATH'] = os.getenv("PATH"):split(os.pathsep)
   o.project = {}
+  o.patches = o.patches or {}
   setmetatable(o, self)
   return o
 end
@@ -50,10 +52,19 @@ function Pkg:is_installed()
   local package_file = os.path.join(self.dirs.packages, ("%s-%s.lua"):format(self.name, self.version))
   if not os.path.exists(package_file) then return false end
   local package_data = dofile(package_file)
-  if not package_data[self.arch] then return false end
+
+  local installed = package_data.installed[self.target]
+  if not installed then
+    for f in table.iterate(package_data.files) do
+      local full_path = os.path.join(self.dirs.installed, self.target, f)
+      if os.path.exists(full_path) then
+        os.remove(full_path)
+      end
+    end
+  end
 
   for f in table.iterate(package_data.files) do
-    local full_path = os.path.join(self.dirs.installed, self.arch .. "-" .. self.platform.name, f)
+    local full_path = os.path.join(self.dirs.installed, self.target, f)
     if not os.path.exists(full_path) then return false end
   end
 
@@ -106,18 +117,32 @@ function Pkg:makedirs()
     os.mkdirs(self.build_base_dir)
   end
 
-  self.data.build_dir = os.path.join(self.build_base_dir, self.arch .. '-' .. self.platform.name)
+  self.data.build_dir = os.path.join(self.build_base_dir, self.target)
   if os.path.exists(self.build_dir) then
     os.rmdirs(self.build_dir)
   end
   os.mkdirs(self.build_dir)
 
-  self.data.install_dir = os.path.join(self.dirs.installed,
-    self.arch .. "-" .. self.platform.name)
+  self.data.install_dir = os.path.join(self.dirs.installed, self.target)
 end
 
 function Pkg:patch_source()
+  local pkg_path = os.path.join(ccpkg.ports_dir, self.name)
+  local patch_path = os.which('patch')
   -- placeholder
+  for _, p in ipairs(self.patches) do
+    local full_path = os.path.join(pkg_path, p)
+    print('--- apply ' .. p)
+    os.run({patch_path, '-p1', '-i', full_path}, {cwd=self.src_dir, check=true})
+  end
+
+  if self.patches[self.platform.name] then
+    for _, p in ipairs(self.patches[self.platform.name]) do
+      local full_path = os.path.join(pkg_path, p)
+      print('--- apply ' .. p)
+      os.run({patch_path, '-p1', '-i', full_path}, {cwd=self.src_dir, check=true})  
+    end
+  end
 end
 
 function Pkg:dependencies()
@@ -169,11 +194,36 @@ function Pkg:save_package(files)
   end
 
   package_data.files = files
-  package_data[self.arch] = "installed"
+  package_data.installed = package_data.installed or {}
+  package_data.installed[self.target] = true
 
   local file_handle = io.open(package_file, 'w+')
-  file_handle:write("return " .. table.dump(package_data))
+  file_handle:write("return " .. self.serialize(package_data, 1))
   file_handle:close()
+end
+
+function Pkg.serialize(o, level)
+  if type(o) == "table" then
+    local s = '{\n'
+    local indent = string.rep(' ', 2*level)
+    for k, v in table.sorted_pairs(o) do
+      if type(k) == "number" then
+        s = s .. indent .. Pkg.serialize(v, level+1) .. ',\n'
+      elseif k:match('[-]') then
+        s = s .. indent .. '["' .. k .. '"]=' .. Pkg.serialize(v, level+1) .. ',\n'
+      else
+        s = s .. indent .. k .. '=' .. Pkg.serialize(v, level+1) .. ',\n'
+      end
+    end
+    if level > 1 then
+      return s .. string.rep(' ', 2*(level-1)) .. '}'
+    else
+      return s .. '}'
+    end
+  elseif type(o) == 'string' then
+    return '"' .. o .. '"'
+  end
+  return tostring(o)
 end
 
 return Pkg

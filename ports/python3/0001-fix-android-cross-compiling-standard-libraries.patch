@@ -1,0 +1,58 @@
+diff --git a/setup.py b/setup.py
+index 43e807f..b698a3d 100644
+--- a/setup.py
++++ b/setup.py
+@@ -386,7 +386,9 @@ class PyBuildExt(build_ext):
+ 
+     def set_srcdir(self):
+         self.srcdir = sysconfig.get_config_var('srcdir')
+-        if not self.srcdir:
++        if CROSS_COMPILING:
++            self.srcdir = sysconfig.get_config_var('VPATH')
++        elif not self.srcdir:
+             # Maybe running on Windows but not using CYGWIN?
+             raise ValueError("No source directory; cannot proceed.")
+         self.srcdir = os.path.abspath(self.srcdir)
+@@ -767,7 +769,7 @@ class PyBuildExt(build_ext):
+                     for line in fp.readlines():
+                         if line.startswith("gcc version"):
+                             is_gcc = True
+-                        elif line.startswith("clang version"):
++                        elif "clang version" in line:
+                             is_clang = True
+                         elif line.startswith("#include <...>"):
+                             in_incdirs = True
+@@ -788,6 +790,14 @@ class PyBuildExt(build_ext):
+         if VXWORKS:
+             self.add_wrcc_search_dirs()
+ 
++        prefix = sysconfig.get_config_var("prefix")
++        add_dir_to_list(self.compiler.include_dirs,
++                        os.path.join(prefix, "include"))
++
++        for dir in self.compiler.include_dirs:
++            add_dir_to_list(self.compiler.library_dirs,
++                            dir.replace('include', 'lib'))
++
+     def add_ldflags_cppflags(self):
+         # Add paths specified in the environment variables LDFLAGS and
+         # CPPFLAGS for header and library files.
+@@ -1693,15 +1703,13 @@ class PyBuildExt(build_ext):
+             if MACOS and is_macosx_sdk_path(zlib_h):
+                 zlib_h = os.path.join(macosx_sdk_root(), zlib_h[1:])
+             with open(zlib_h) as fp:
+-                while 1:
+-                    line = fp.readline()
+-                    if not line:
+-                        break
++                for line in fp.readlines():
+                     if line.startswith('#define ZLIB_VERSION'):
+                         version = line.split()[2]
+                         break
++
+             if version >= version_req:
+-                if (self.compiler.find_library_file(self.lib_dirs, 'z')):
++                if self.compiler.find_library_file(self.lib_dirs, 'z'):
+                     if MACOS:
+                         zlib_extra_link_args = ('-Wl,-search_paths_first',)
+                     else:

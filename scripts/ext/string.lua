@@ -1,4 +1,4 @@
-function string:trim()
+function string:strip()
   return (self:gsub("^%s*(.-)%s*$", "%1"))
 end
 
