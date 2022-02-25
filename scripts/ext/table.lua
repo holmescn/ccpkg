@@ -72,10 +72,43 @@ function table.index(t, v)
   end
 end
 
-function table.remove_then_insert(t, insert_index, value)
-  local index = table.index(t, value)
-  if index and index ~= insert_index then
-    table.remove(t, index)
-    table.insert(t, insert_index, value)
+function table.serialize(o, level)
+  level = level or 1
+  if type(o) == "table" then
+    local s = '{\n'
+    for k, v in table.sorted_pairs(o) do
+      -- indent
+      s = s .. string.rep(' ', 2*level)
+      -- key
+      if type(k) == "string" then
+        if k:match('[/\\-]') then
+          s = s .. '["'..k..'"]='
+        else
+          s = s .. k ..'='
+        end
+      end
+      -- value
+      s = s .. table.serialize(v, level+1) .. ',\n'
+    end
+  
+    if level == 1 then
+      return s .. '}'
+    else
+      return s .. string.rep(' ', 2*(level-1)) .. '}'
+    end
+  elseif type(o) == "string" then
+    return '"' .. o .. '"'
+  else
+    return tostring(o)
   end
 end
+
+function table.len(t, f)
+  f = f or pairs
+  local n = 0
+  for _, _ in f(t) do
+    n = n + 1
+  end
+  return n
+end
+

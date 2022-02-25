@@ -1,3 +1,4 @@
+---@diagnostic disable: undefined-field
 local Args = require "ccpkg.args"
 local Platform = require "platform"
 local Android = Platform:new {
@@ -6,27 +7,33 @@ local Android = Platform:new {
     ["arm"]={
       abi="armeabi-v7a",
       host='arm-unknown-linux-android',
+      library_arch='arm-linux-androideabi',
       clang="armv7a-linux-androideabi%d-clang"
     },
     ['arm64']={
       abi="arm64-v8a",
       host='arm64-unknown-linux-android',
+      library_arch='aarch64-linux-android',
       clang="aarch64-linux-android%d-clang"
     },
     ["x86"]={
       abi='x86',
       host='i686-unknown-linux-android',
+      library_arch='i686-linux-android',
       clang="i686-linux-android%d-clang"
     },
     ['x64']={
       abi='x86_64',
       host='x86_64-unknown-linux-android',
+      library_arch='x86_64-linux-android',
       clang="x86_64-linux-android%d-clang"
     }
   }
 }
 
 function Android:init(project)
+  if self.ndk_home then return self end
+
   self.ndk_home = project.android.ndk_home
   self.toolchain_file = os.path.join(self.ndk_home, "build", "cmake", "android.toolchain.cmake")
   self:detect_ndk_version()
@@ -68,16 +75,16 @@ function Android:cmake(step, pkg, opt)
     opt.args = Args:new {
       -- "-DANDROID_LD=" .. self.android_ld,
       "-DANDROID_STL=" .. self.android_stl,
-      "-DANDROID_ABI=" .. self.data[pkg.arch].abi,
+      "-DANDROID_ABI=" .. self.data[pkg.machine].abi,
       "-DANDROID_PLATFORM=android-" .. self.native_api_level,
-      "-DCMAKE_TOOLCHAIN_FILE=" .. self.toolchain_file
+      "-DCMAKE_TOOLCHAIN_FILE=" .. self.toolchain_file,
     }
   end
 end
 
 function Android:configure_make(step, pkg, opt)
   if step == "configure" then
-    opt.env["CC"] = self.data[pkg.arch].clang:format(self.native_api_level)
+    opt.env["CC"] = self.data[pkg.machine].clang:format(self.native_api_level)
     opt.env["CXX"] = opt.env['CC'] .. '++'
     opt.env["AR"] = "llvm-ar"
     opt.env["AS"] = "llvm-as"
@@ -88,7 +95,7 @@ function Android:configure_make(step, pkg, opt)
     opt.env["READELF"] = "llvm-readelf"
     opt.env["STRIP"] = "llvm-strip"
     opt.args = Args:new {
-      "--host=" .. self.data[pkg.arch].host
+      "--host=" .. self.data[pkg.machine].host,
     }
   end
   table.insert(opt.env["PATH"], 1, os.path.join(self.llvm_path, "bin"))

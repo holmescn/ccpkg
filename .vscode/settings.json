@@ -72,6 +72,8 @@
     "strstream": "cpp",
     "unordered_set": "cpp",
     "cfenv": "cpp",
-    "valarray": "cpp"
+    "valarray": "cpp",
+    "forward_list": "c",
+    "queue": "cpp"
   }
 }

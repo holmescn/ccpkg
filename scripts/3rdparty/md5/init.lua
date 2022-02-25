@@ -420,7 +420,7 @@ function md5.sum(s)
   return md5.new():update(s):finish()
 end
 
-function md5.sumhexa(s)
+function md5.sum_as_hex(s)
   return md5.tohex(md5.sum(s))
 end
 

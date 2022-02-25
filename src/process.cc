@@ -150,19 +150,6 @@ void Process::init(lua_State *L) {
   if (exe.find('/') == std::string::npos) {
     exe = which(L, exe);
   }
-
-  std::stringstream ss_cmd;
-  for (int i = 0; i < args.size(); ++i) {
-    if (args[i].find(' ') == std::string::npos) {
-      ss_cmd << args[i];
-    } else {
-      ss_cmd << '"' << args[i] << '"';
-    }
-    if (i < args.size() - 1) {
-      ss_cmd << " ";
-    }
-  }
-  this->cmd = ss_cmd.str();
 }
 
 int Process::exec(lua_State *L) {
@@ -321,7 +308,15 @@ void Process::fork_child(void)
 
       printf("PWD=%s\n", cwd.c_str());
       printf("%s\n", envs["PATH"].c_str());
-      printf("%s\n\n", cmd.c_str());
+      {
+        for (i = 0; i < args.size(); ++i) {
+          if (i == 0) {
+            printf("%s \\\n", exe.c_str());
+          } else {
+            printf("  %s %c\n", argv[i], (i < args.size() - 1 ? '\\' : ' '));
+          }
+        }
+      }
     }
   }
 

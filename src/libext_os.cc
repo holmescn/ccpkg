@@ -10,6 +10,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <queue>
 #include <string>
 #include <vector>
 #include <sstream>
@@ -216,6 +217,72 @@ static int ext_os_which(lua_State *L) {
   return 1;
 }
 
+static int ext_os_walk(lua_State *L) {
+  typedef std::queue<std::string> dir_queue_t;
+  int rv = 3;
+
+  if (lua_type(L, 1) == LUA_TSTRING) {
+    /* initial: local f, s, var = explist */
+    void *place;
+    const char *root = luaL_checkstring(L, 1);
+    lua_pushcfunction(L, ext_os_walk);
+    place = lua_newuserdata(L, sizeof(dir_queue_t));
+    luaL_getmetatable(L, "std::queue");
+    lua_setmetatable(L, -2);
+
+    dir_queue_t *q = new (place) dir_queue_t();
+    q->push(root);
+    lua_pushstring(L, root);
+  } else {
+    void *ud = luaL_checkudata(L, 1, "std::queue");
+    dir_queue_t *q = reinterpret_cast<dir_queue_t*>(ud);
+    luaL_argcheck(L, ud != NULL, 1, "`std::queue' expected");
+
+    /**
+     * while true do
+     *   local var_1, ···, var_n = f(s, var)
+     *   if var_1 == nil then break end
+     *   var = var_1
+     *   block
+     * end
+     * 
+     * note: the var is ignored here
+     */
+
+    if (q->empty()) {
+      rv = 1;
+      lua_pushnil(L);
+      q->~dir_queue_t();
+    } else {
+      auto root = q->front(); q->pop();
+      lua_pushstring(L, root.c_str());
+      try {
+        int i_file = 0, i_dir = 0;
+        lua_newtable(L); /* dirs */
+        lua_newtable(L); /* files */
+        for (const auto& dir_entry : std::filesystem::directory_iterator{root}) {
+          const auto p = fs::relative(dir_entry.path(), root);
+          lua_pushstring(L, p.c_str());
+          if (dir_entry.is_directory()) {
+            lua_seti(L, -3, ++i_dir);
+
+            /* push the dir */
+            q->push(dir_entry.path());
+          } else {
+            lua_seti(L, -2, ++i_file);
+          }
+        }
+      } catch (const std::exception &e) {
+        lua_pushstring(L, e.what());
+        goto error;
+      }
+    }
+  }
+  return rv;
+
+  THROW_LUA_ERROR;
+}
+
 /*
 ** ===================================================================
 ** extend os.path.* functions like python.
@@ -388,7 +455,7 @@ static int ext_os_path_splitext (lua_State *L) {
   THROW_LUA_ERROR;
 }
 
-static int ext_os_path_snapshot (lua_State *L) {
+static int ext_os_path_files (lua_State *L) {
   const char *s = luaL_checkstring(L, 1);
 
   {
@@ -422,6 +489,7 @@ LUAMOD_API void luaext_os (lua_State *L) {
     { "copy", ext_os_copy },
     { "copyfile", ext_os_copyfile },
     { "which", ext_os_which },
+    { "walk", ext_os_walk },
     { NULL, NULL }
   };
 
@@ -434,9 +502,11 @@ LUAMOD_API void luaext_os (lua_State *L) {
     { "basename", ext_os_path_basename },
     { "dirname", ext_os_path_dirname },
     { "splitext", ext_os_path_splitext },
-    { "snapshot", ext_os_path_snapshot },
+    { "files", ext_os_path_files },
     { NULL, NULL }
   };
+
+  luaL_newmetatable(L, "std::queue");
 
   lua_getglobal(L, "os");
 
