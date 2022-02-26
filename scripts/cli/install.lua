@@ -25,7 +25,7 @@ function Command:execute(args)
   project.args = args
 
   -- TODO resolve dependencies and versions
-  for tuplet in table.iterate(project.tuplets) do
+  for tuplet in table.each(project.tuplets) do
     local machine, platform_name = tuplet:match("(%w+)-(%w+)")
     local platform = require('platform.' .. platform_name):init(project)
     self:do_install(project.dependencies, {
@@ -36,7 +36,7 @@ function Command:execute(args)
 end
 
 function Command:do_install(dependencies, opt)
-  for spec in table.iterate(dependencies) do
+  for spec in table.each(dependencies) do
     local pkg = nil
     if type(spec) == "string" then
       pkg = require('ports.' .. spec):init(opt, {name=spec, version='latest'})
@@ -57,10 +57,9 @@ function Command:install_pkg(pkg)
   pkg:download_source()
   pkg:unpack_source()
   pkg:patch_source()
-  pkg:makedirs()
 
   pkg:before_build_steps()
-  for step in table.iterate {"configure", "build", "install"} do
+  for step in table.values {"configure", "build", "install"} do
     local opt = {env=table.clone(pkg.env), check=true}
     print("--- " .. step .. " step")
     pkg.platform:execute(step, pkg, opt)

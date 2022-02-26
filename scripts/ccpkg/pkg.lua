@@ -59,11 +59,13 @@ function Pkg:init(opt, spec)
     self.buildsystem = require('buildsystem.' .. self.buildsystem):init(self)
   end
 
+  self.data.name_version = self.name .. '-' .. self.version
   return self
 end
 
 function Pkg:is_installed()
-  return false
+  local install_dir = os.path.join(self.dirs.packages, self.name_version, self.tuplet)
+  return os.path.exists(install_dir)
 end
 
 function Pkg:download_source()
@@ -118,7 +120,7 @@ function Pkg:makedirs()
   end
   os.mkdirs(self.build_dir)
 
-  self.data.install_dir = os.path.join(self.dirs.packages, self.name .. '-' .. self.version, self.tuplet)
+  self.data.install_dir = os.path.join(self.dirs.packages, self.name_version, self.tuplet)
 end
 
 function Pkg:patch_source()
@@ -156,7 +158,7 @@ function Pkg:dependencies()
 end
 
 function Pkg:before_build_steps()
-  -- placeholder
+  self:makedirs()
 end
 
 function Pkg:execute(step, opt)
@@ -175,7 +177,8 @@ function Pkg:execute_hook(prefix, step, opt)
 end
 
 function Pkg:after_build_steps()
-  -- self:fix_pkgconfig()
+  self:fix_pkgconfig()
+  self:copy_to_sysroot()
 end
 
 function Pkg:fix_pkgconfig()
@@ -183,22 +186,60 @@ function Pkg:fix_pkgconfig()
   if self.pkgconfig then
     pkgconfig = self.pkgconfig
   end
-  pkgconfig = os.path.join(self.lib_dir, "pkgconfig", pkgconfig)
+  pkgconfig = os.path.join(self.install_dir, 'lib', 'pkgconfig', pkgconfig)
   if not os.path.exists(pkgconfig) then return end
+  print('--- fix pkgconfig in ' .. pkgconfig)
 
-  local lines = {}
-  for line in io.lines(pkgconfig) do
+  local prefix = ''
+  ccpkg.edit(pkgconfig, function(line)
     if line:match("^prefix=") then
-      line = line:gsub(self.dirs.sysroot, '')
+      prefix = line:match("^prefix=%s*(.*)")
+      return 'prefix=/usr'
+    elseif line:match("^includedir=") then
+      return os.path.join(line:gsub(prefix, '${prefix}'), self.library_arch)
+    elseif line:match("^libdir=") then
+      return os.path.join(line:gsub(prefix, '${prefix}'), self.library_arch)
+    elseif string.len(prefix) > 0 then
+      return line:gsub(prefix, '${prefix}')
     else
-      line = line:gsub(self.dirs.sysroot, '${prefix}')
+      return line
     end
-    table.insert(lines, line)
-  end
+  end)
+end
 
-  local pkgconfig_file = io.open(pkgconfig, "w+")
-  pkgconfig_file:write(table.concat(lines, '\n'))
-  pkgconfig_file:close()
+function Pkg:copy_to_sysroot()
+  local src_lib_dir_root = os.path.join(self.install_dir, 'lib')
+  local src_include_dir_root = os.path.join(self.install_dir, 'include')
+  local dst_lib_dir_root = os.path.join(self.dirs.sysroot, 'usr', 'lib', self.library_arch)
+  local dst_include_dir_root = os.path.join(self.dirs.sysroot, 'usr', 'include', self.library_arch)
+
+  for root, dirs, files in os.walk(self.install_dir) do
+    for dir in table.each(dirs) do
+      local src_dir = os.path.join(root, dir)
+      if src_dir:startswith(src_include_dir_root) then
+        local dst_dir = os.path.join(dst_include_dir_root, os.path.relpath(src_dir, src_include_dir_root))
+        if not os.path.exists(dst_dir) then
+          os.mkdirs(dst_dir)
+        end
+      elseif src_dir:startswith(src_lib_dir_root) then
+        local dst_dir = os.path.join(dst_lib_dir_root, os.path.relpath(src_dir, src_lib_dir_root))
+        if not os.path.exists(dst_dir) then
+          os.mkdirs(dst_dir)
+        end
+      end
+    end
+
+    for f in table.each(files) do
+      local src_file = os.path.join(root, f)
+      if src_file:startswith(src_include_dir_root) then
+        local dst_file = os.path.join(dst_include_dir_root, os.path.relpath(src_file, src_include_dir_root))
+        os.copyfile(src_file, dst_file, {override=1})
+      elseif src_file:startswith(src_lib_dir_root) then
+        local dst_file = os.path.join(dst_lib_dir_root, os.path.relpath(src_file, src_lib_dir_root))
+        os.copyfile(src_file, dst_file, {override=1})
+      end
+    end
+  end
 end
 
 function Pkg:hash_file(full_path)

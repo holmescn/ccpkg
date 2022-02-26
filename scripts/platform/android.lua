@@ -44,7 +44,7 @@ function Android:init(project)
   self.android_ld = project.android_ld or "lld"
 
   self.llvm_path = os.path.join(self.ndk_home, 'toolchains', 'llvm', 'prebuilt')
-  for dir in table.iterate(os.listdir(self.llvm_path)) do
+  for dir in table.values(os.listdir(self.llvm_path)) do
     self.llvm_path = os.path.join(self.llvm_path, dir)
     break
   end
@@ -68,6 +68,7 @@ end
 
 function Android:execute(step, pkg, opt)
   self[pkg.buildsystem.name](self, step, pkg, opt)
+  pkg.data.library_arch = self.data[pkg.machine].library_arch
 end
 
 function Android:cmake(step, pkg, opt)

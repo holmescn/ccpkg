@@ -28,4 +28,15 @@ function ccpkg:makedirs(project_dir)
   return dirs
 end
 
+function ccpkg.edit(filename, f)
+  local lines = {}
+  for line in io.lines(filename) do
+    local l = f(line)
+    table.insert(lines, l)
+  end
+  local fp = io.open(filename, 'w+')
+  fp:write(table.concat(lines, '\n'))
+  fp:close()
+end
+
 return ccpkg

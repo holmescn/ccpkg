@@ -17,7 +17,7 @@ function CMake:before_configure(pkg, opt)
   opt.args = opt.args or Args:new {}
   opt.args:insert(1, self.cmake_path)
 
-  opt.args:append("-DCMAKE_INSTALL_PREFIX=/usr/local")
+  opt.args:append("-DCMAKE_FIND_ROOT_PATH=" .. pkg.dirs.sysroot)
 
   if self.ninja_path then
     opt.args:append("-GNinja")

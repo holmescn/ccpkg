@@ -20,3 +20,7 @@ end
 function string:join(t)
   return table.concat(t, self)
 end
+
+function string:startswith(prefix)
+  return self:sub(1, #prefix) == prefix
+end

@@ -11,7 +11,7 @@ local LibZmq = Pkg:new {
       hash='sha256:540fb721619a6aba3bdeef7d940d8e9e0e6d2c193595bc243241b77ff9e93620'
     }
   },
-  buildsystem="cmake"
+  buildsystem="configure_make"
 }
 
 return LibZmq

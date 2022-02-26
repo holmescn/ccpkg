@@ -370,7 +370,10 @@ static int ext_os_path_relpath (lua_State *L) {
     }
 
     try {
-      fs::path r = fs::relative(path, start);
+      std::string r = fs::relative(path, start);
+      if (r.back() == '/') {
+        r.back() = '\0';
+      }
       lua_pushstring(L, r.c_str());
     } catch (const std::exception &e) {
       lua_pushstring(L, e.what());

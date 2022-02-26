@@ -47,21 +47,28 @@ function table.sorted_pairs(t)
   end
   table.sort(keys)
 
-  local i = 0
-  local n = #keys
-  return function ()
-    i = i + 1
-    if i <= n then return keys[i], t[keys[i]] end
-  end
+  local iterator, s, i = ipairs(keys)
+
+  return function (state)
+    local next_i, k = iterator(state, i)
+    i = next_i
+    return k, t[k]
+  end, s, i
 end
 
-function table.iterate(t)
-  local i = 0
-  local n = #t
-  return function(t)
-    i = i + 1
-    if i <= n then return t[i] end
-  end, t
+function table.values(t)
+  return table.each(t, pairs)
+end
+
+function table.each(t, f)
+  f = f or ipairs
+  local iterator, s, i = f(t)
+
+  return function(state)
+    local next_i, v = iterator(state, i)
+    i = next_i
+    return v
+  end, s, i
 end
 
 function table.index(t, v)
@@ -111,4 +118,3 @@ function table.len(t, f)
   end
   return n
 end
-

@@ -308,13 +308,11 @@ void Process::fork_child(void)
 
       printf("PWD=%s\n", cwd.c_str());
       printf("%s\n", envs["PATH"].c_str());
-      {
-        for (i = 0; i < args.size(); ++i) {
-          if (i == 0) {
-            printf("%s \\\n", exe.c_str());
-          } else {
-            printf("  %s %c\n", argv[i], (i < args.size() - 1 ? '\\' : ' '));
-          }
+      for (i = 0; i < args.size(); ++i) {
+        if (i == 0) {
+          printf("%s \\\n", exe.c_str());
+        } else {
+          printf("  %s %c\n", argv[i], (i < args.size() - 1 ? '\\' : '\n'));
         }
       }
     }
