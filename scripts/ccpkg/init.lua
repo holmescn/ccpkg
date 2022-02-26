@@ -1,3 +1,4 @@
+---@diagnostic disable: undefined-field
 local root_dir = os.getenv("CCPKG_ROOT")
 local ccpkg = {
   root_dir=root_dir,
@@ -15,7 +16,7 @@ function ccpkg:makedirs(project_dir)
 
   dirs.tmp = os.path.join(root_dir, 'tmp')
   dirs.downloads = os.path.join(root_dir, 'downloads')
-  dirs.installed = os.path.join(root_dir, 'installed')
+  dirs.sysroot = os.path.join(root_dir, 'sysroot')
   dirs.packages = os.path.join(root_dir, 'packages')
 
   for _, dir in pairs(dirs) do
@@ -25,6 +26,17 @@ function ccpkg:makedirs(project_dir)
   end
 
   return dirs
+end
+
+function ccpkg.edit(filename, f)
+  local lines = {}
+  for line in io.lines(filename) do
+    local l = f(line)
+    table.insert(lines, l)
+  end
+  local fp = io.open(filename, 'w+')
+  fp:write(table.concat(lines, '\n'))
+  fp:close()
 end
 
 return ccpkg

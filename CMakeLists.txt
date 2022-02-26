@@ -17,6 +17,7 @@ elseif(WIN32 AND CMAKE_SYSTEM_NAME STREQUAL "Windows")
 else()
   message(FATAL_ERROR "unsupported system")
 endif()
+add_compile_definitions(LUA_COMPAT_5_2=1)
 
 find_package(Lua REQUIRED)
 

@@ -20,13 +20,9 @@ local Python3 = Pkg:new {
 
 function Python3:dependencies()
   return {
-    bzip2='latest',
-    libffi='latest',
-    liblzma='latest',
-    libuuid='latest',
-    openssl='latest',
-    sqlite3='latest',
-    expat='latest',
+    "bzip2", "expat",
+    "libffi", "liblzma", "libuuid",
+    "sqlite3", "openssl",
   }
 end
 
@@ -40,7 +36,7 @@ function Python3:before_configure(opt)
 
   local config_site_file = io.open(os.path.join(self.build_dir, "config.site"), "w+")
   config_site_file:write("ac_cv_file__dev_ptc=no\n")
-  config_site_file:write("ac_cv_file__dev_ptmx=no\n")
+  config_site_file:write("ac_cv_file__dev_ptmx=no")
   config_site_file:close()
 end
 
@@ -56,9 +52,7 @@ function Python3:before_build(opt)
   end
 
   local makefile_file = io.open(makefile_path, "w+")
-  for line in table.iterate(lines) do
-    makefile_file:write(line .. '\n')
-  end
+  makefile_file:write(table.concat(lines, '\n'))
   makefile_file:close()
 end
 

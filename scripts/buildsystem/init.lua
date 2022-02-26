@@ -1,3 +1,4 @@
+---@diagnostic disable: undefined-field
 local BuildSystem = {
 }
 BuildSystem.__index = BuildSystem
@@ -8,9 +9,9 @@ function BuildSystem:new(o)
 end
 
 function BuildSystem:execute(step, pkg, opt)
-  local log_file = os.path.join(pkg.build_base_dir, ("%s-%s-%s.log"):format(
+  local log_file = os.path.join(pkg.build_base_dir, ("%s-%s.log"):format(
     (step == "configure" and "config" or step),
-    pkg.arch, pkg.platform.name
+    pkg.tuplet
   ))
   if not opt.capture_output then
     opt.file = opt.file or log_file

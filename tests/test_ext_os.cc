@@ -100,7 +100,7 @@ TEST_CASE_METHOD( TestFixture, "os.run", "[ext.os]") {
 
   SECTION("check exit failed") {
     REQUIRE( run("r = os.run('ls -5', {check=true})") != LUA_OK );
-    REQUIRE( error() == "/tmp/test.lua:1: 'run' exit with code 2" );
+    REQUIRE( error() == "/tmp/test.lua:1: 'run' exit with 2" );
   }
 
   SECTION("capture output") {
@@ -110,6 +110,6 @@ TEST_CASE_METHOD( TestFixture, "os.run", "[ext.os]") {
 
   SECTION("capture output and check") {
     REQUIRE( run("r = os.run('ls -5', {capture_output=true, check=true})") != LUA_OK );
-    REQUIRE( error() == "/tmp/test.lua:1: 'run' exit with code 2" );
+    REQUIRE( error() == "/tmp/test.lua:1: 'run' exit with 2" );
   }
 }

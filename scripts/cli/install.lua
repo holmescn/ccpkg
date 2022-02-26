@@ -1,3 +1,4 @@
+---@diagnostic disable: undefined-field
 local ccpkg = require "ccpkg"
 local Command = {}
 
@@ -20,23 +21,30 @@ function Command:execute(args)
   print("--- project file " .. project_file)
 
   local project = dofile(project_file)
-  local platform = require('platform.' .. project.platform):init(project)
   project.dirs = ccpkg:makedirs(project_dir)
   project.args = args
 
   -- TODO resolve dependencies and versions
-  for arch in table.iterate(project.arch) do
-    self:do_install(project.dependencies, arch, project, platform)
+  for tuplet in table.each(project.tuplets) do
+    local machine, platform_name = tuplet:match("(%w+)-(%w+)")
+    local platform = require('platform.' .. platform_name):init(project)
+    self:do_install(project.dependencies, {
+      machine=machine, tuplet=tuplet,
+      project=project, platform=platform
+    })
   end
 end
 
-function Command:do_install(dependencies, arch, project, platform)
-  for name, desc in table.sorted_pairs(dependencies) do
-    local pkg = require('ports.' .. name):init(arch, desc)
-    pkg.project = project
-    pkg.platform = platform
-    pkg.data.target = arch .. '-' .. platform.name
-    self:do_install(pkg:dependencies(), arch, project, platform)
+function Command:do_install(dependencies, opt)
+  for spec in table.each(dependencies) do
+    local pkg = nil
+    if type(spec) == "string" then
+      pkg = require('ports.' .. spec):init(opt, {name=spec, version='latest'})
+    else
+      pkg = require('ports.' .. spec.name):init(opt, spec)
+    end
+
+    self:do_install(pkg:dependencies(), opt)
     if not pkg:is_installed() then
       self:install_pkg(pkg)
     end
@@ -44,17 +52,14 @@ function Command:do_install(dependencies, arch, project, platform)
 end
 
 function Command:install_pkg(pkg)
-  print (("--- build %s-%s for %s-%s"):format(pkg.name, pkg.version, pkg.arch, pkg.platform.name))
+  print (("--- build %s-%s for %s"):format(pkg.name, pkg.version, pkg.tuplet))
 
   pkg:download_source()
   pkg:unpack_source()
   pkg:patch_source()
-  pkg:makedirs()
-
-  local files = os.path.snapshot(pkg.install_dir)
 
   pkg:before_build_steps()
-  for step in table.iterate {"configure", "build", "install"} do
+  for step in table.values {"configure", "build", "install"} do
     local opt = {env=table.clone(pkg.env), check=true}
     print("--- " .. step .. " step")
     pkg.platform:execute(step, pkg, opt)
@@ -65,7 +70,6 @@ function Command:install_pkg(pkg)
     pkg.buildsystem:execute_hook('after', step, pkg, opt)
   end
   pkg:after_build_steps()
-  pkg:save_package(files)
 end
 
 return Command

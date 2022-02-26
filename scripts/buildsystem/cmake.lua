@@ -1,3 +1,4 @@
+---@diagnostic disable: undefined-field
 local Args = require "ccpkg.args"
 local BuildSystem = require "buildsystem"
 local CMake = BuildSystem:new {
@@ -16,6 +17,8 @@ function CMake:before_configure(pkg, opt)
   opt.args = opt.args or Args:new {}
   opt.args:insert(1, self.cmake_path)
 
+  opt.args:append("-DCMAKE_FIND_ROOT_PATH=" .. pkg.dirs.sysroot)
+
   if self.ninja_path then
     opt.args:append("-GNinja")
   end
@@ -32,7 +35,8 @@ end
 function CMake:before_install(pkg, opt)
   opt.args = Args:new {
     self.cmake_path, "--install", ".",
-    "--prefix", pkg.install_dir, "--config", "Release"
+    "--prefix", pkg.install_dir,
+    "--config", "Release"
   }
 end
 

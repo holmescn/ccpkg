@@ -11,7 +11,6 @@ class Process {
 
   std::string cwd;
   std::string exe;
-  std::string cmd;
   std::string file;
   bool shell = false;
   bool check = false;
