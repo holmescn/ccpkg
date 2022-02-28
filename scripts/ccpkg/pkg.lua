@@ -224,10 +224,15 @@ function Pkg:save_package()
   if package_data.files then
     exists_checker = table.create_filter(package_data.files)
     for f in table.each(added_files) do
-      if not package_data[self.tuplet] then
-        package_data[self.tuplet] = {}
+      if not exists_checker[f] then
+        if not package_data[self.tuplet] then
+          package_data[self.tuplet] = {}
+        end
+        table.insert(package_data[self.tuplet], f)  
       end
-      table.insert(package_data[self.tuplet], f)
+    end
+    if package_data[self.tuplet] then
+      table.sort(package_data[self.tuplet])
     end
   else
     package_data.files = added_files
@@ -251,7 +256,7 @@ function Pkg:fix_pkgconfig()
   end
   if not pkgconfig_file then return end
 
-  print('--- fix pkgconfig: ' .. os.path.relpath(pkgconfig_file, self.project_dir))
+  print('--- fix pkgconfig: ' .. os.path.join('.', os.path.relpath(pkgconfig_file, self.project_dir)))
 
   ccpkg.edit(pkgconfig_file, function(line)
     local var_name, value = line:match('^([%w_]+)%s*=%s*(.*)$')
@@ -270,14 +275,6 @@ function Pkg:fix_pkgconfig()
       return line
     end
   end)
-end
-
-function Pkg:hash_file(full_path)
-  assert(os.path.exists(full_path), full_path .. " is not found")
-  local fp = io.open(full_path, "rb")
-  local md5_as_hex = md5.sum_as_hex(fp:read("a"))
-  fp:close()
-  return md5_as_hex
 end
 
 return Pkg

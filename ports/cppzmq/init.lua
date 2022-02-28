@@ -15,9 +15,7 @@ local CppZmq = Pkg:new {
 }
 
 function CppZmq:dependencies()
-  return {
-    'libzmq'
-  }
+  return { 'libzmq' }
 end
 
 return CppZmq

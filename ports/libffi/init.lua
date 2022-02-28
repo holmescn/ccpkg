@@ -13,4 +13,4 @@ local LibFfi = Pkg:new {
   buildsystem="configure_make"
 }
 
-return LibFfi
+return LifFfi

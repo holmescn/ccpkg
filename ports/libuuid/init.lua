@@ -1,5 +1,5 @@
 local Pkg = require "ccpkg.pkg"
-local LibUUid = Pkg:new {
+local LibUuid = Pkg:new {
   name="libuuid",
   description="Universally unique id library",
   homepage="https://sourceforge.net/projects/libuuid",
@@ -13,4 +13,4 @@ local LibUUid = Pkg:new {
   buildsystem="configure_make"
 }
 
-return LibUUid
+return LibUuid

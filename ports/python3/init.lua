@@ -50,11 +50,6 @@ function Python3:before_build(opt)
     end
     return line
   end)
-  opt.env["LIBRARY_ARCH"] = self.library_arch
-end
-
-function Python3:before_install(opt)
-  opt.args:insert(2, "prefix=" .. self.install_dir)
 end
 
 return Python3
