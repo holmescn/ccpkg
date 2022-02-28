@@ -9,6 +9,6 @@ return {
     native_api_level=23
   },
   dependencies={
-    "msgpack-cxx",
+    "rapidjson",
   }
 }
