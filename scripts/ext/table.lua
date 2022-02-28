@@ -79,13 +79,14 @@ function table.index(t, v)
   end
 end
 
-function table.serialize(o, level)
-  level = level or 1
+function table.serialize(o, indent)
+  indent = indent or 0
   if type(o) == "table" then
     local s = '{\n'
+    indent = indent + 2
     for k, v in table.sorted_pairs(o) do
       -- indent
-      s = s .. string.rep(' ', 2*level)
+      s = s .. string.rep(' ', indent)
       -- key
       if type(k) == "string" then
         if k:match('[/\\-]') then
@@ -95,13 +96,13 @@ function table.serialize(o, level)
         end
       end
       -- value
-      s = s .. table.serialize(v, level+1) .. ',\n'
+      s = s .. table.serialize(v, indent) .. ',\n'
     end
-  
-    if level == 1 then
+    indent = indent - 2
+    if indent == 0 then
       return s .. '}'
     else
-      return s .. string.rep(' ', 2*(level-1)) .. '}'
+      return s .. string.rep(' ', indent) .. '}'
     end
   elseif type(o) == "string" then
     return '"' .. o .. '"'
@@ -117,4 +118,12 @@ function table.len(t, f)
     n = n + 1
   end
   return n
+end
+
+function table.create_filter(t)
+  local filter = {}
+  for v in table.each(t) do
+    filter[v] = true
+  end
+  return filter
 end

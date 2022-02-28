@@ -16,7 +16,7 @@ function ccpkg:makedirs(project_dir)
 
   dirs.tmp = os.path.join(root_dir, 'tmp')
   dirs.downloads = os.path.join(root_dir, 'downloads')
-  dirs.sysroot = os.path.join(root_dir, 'sysroot')
+  dirs.installed = os.path.join(root_dir, 'installed')
   dirs.packages = os.path.join(root_dir, 'packages')
 
   for _, dir in pairs(dirs) do
@@ -31,8 +31,8 @@ end
 function ccpkg.edit(filename, f)
   local lines = {}
   for line in io.lines(filename) do
-    local l = f(line)
-    table.insert(lines, l)
+    local x = f(line)
+    table.insert(lines, x)
   end
   local fp = io.open(filename, 'w+')
   fp:write(table.concat(lines, '\n'))

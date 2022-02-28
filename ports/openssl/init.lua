@@ -27,16 +27,16 @@ function OpenSSL:before_configure(opt)
     end
     opt['_args']:append("-D__ANDROID_API__=" .. self.platform.native_api_level)
 
-    if self.arch == "arm" then
-      opt['_args']:append("android-arm")
-    elseif self.arch == "arm64" then
-      opt['_args']:append("android-arm64")
-    elseif self.arch == "x86" then
-      opt['_args']:append("android-x86")
-    elseif self.arch == "x64" then
-      opt['_args']:append("android-x86_64")
+    local arch_map = {
+      arm='android-arm',
+      arm64='android-arm64',
+      x86='android-x86',
+      x64='android-x86_64',
+    }
+    if arch_map[self.machine] then
+      opt['_args']:append(arch_map[self.machine])
     else
-      error("unsupported android arch: " .. self.arch)
+      error("unsupported android arch: " .. self.machine)
     end
 
     opt.args = Args:new {perl_path}

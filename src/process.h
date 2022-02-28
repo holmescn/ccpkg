@@ -5,8 +5,7 @@
 #include <map>
 #include "lua.h"
 
-namespace process {
-class Process {
+class CrossPlatformProcess {
   static int n_instance;
 
   std::string cwd;
@@ -30,16 +29,15 @@ class Process {
   std::string which(lua_State *L, const std::string &name);
 
 public:
-  Process();
-  Process(const Process&) = delete;
-  Process(Process&&) = delete;
-  Process& operator=(const Process&) = delete;
-  Process& operator=(Process&&) = delete;
-  ~Process();
+  CrossPlatformProcess();
+  CrossPlatformProcess(const CrossPlatformProcess&) = delete;
+  CrossPlatformProcess(CrossPlatformProcess&&) = delete;
+  CrossPlatformProcess& operator=(const CrossPlatformProcess&) = delete;
+  CrossPlatformProcess& operator=(CrossPlatformProcess&&) = delete;
+  ~CrossPlatformProcess();
 
   void init(lua_State *L);
   int  exec(lua_State *L);
 };
 
-}
 #endif /* __CCPKG_PROCESS_H */

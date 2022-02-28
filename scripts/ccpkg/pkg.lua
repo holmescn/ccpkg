@@ -59,13 +59,36 @@ function Pkg:init(opt, spec)
     self.buildsystem = require('buildsystem.' .. self.buildsystem):init(self)
   end
 
-  self.data.name_version = self.name .. '-' .. self.version
+  self.data.full_name = self.name .. '-' .. self.version
   return self
 end
 
 function Pkg:is_installed()
-  local install_dir = os.path.join(self.dirs.packages, self.name_version, self.tuplet)
-  return os.path.exists(install_dir)
+  local package_file = os.path.join(self.dirs.packages, self.full_name .. '.lua')
+  if not os.path.exists(package_file) then
+    return false
+  end
+
+  local package_data = dofile(package_file)
+  local installed = true
+  for f in table.each(package_data.files) do
+    local full_path = os.path.join(self.dirs.installed, self.tuplet, f)
+    if not os.path.exists(full_path) then
+      installed = false
+      break
+    end
+  end
+
+  if not installed then
+    for f in table.each(package_data.files) do
+      local full_path = os.path.join(self.dirs.installed, f)
+      if os.path.exists(full_path) then
+        os.remove(full_path)
+      end
+    end
+  end
+
+  return installed
 end
 
 function Pkg:download_source()
@@ -120,7 +143,8 @@ function Pkg:makedirs()
   end
   os.mkdirs(self.build_dir)
 
-  self.data.install_dir = os.path.join(self.dirs.packages, self.name_version, self.tuplet)
+  self.data.install_dir = os.path.join(self.dirs.installed, self.tuplet)
+  self.data.package_file = os.path.join(self.dirs.packages, self.full_name .. '.lua')
 end
 
 function Pkg:patch_source()
@@ -159,6 +183,7 @@ end
 
 function Pkg:before_build_steps()
   self:makedirs()
+  self.data.files = os.path.files(self.install_dir)
 end
 
 function Pkg:execute(step, opt)
@@ -177,69 +202,74 @@ function Pkg:execute_hook(prefix, step, opt)
 end
 
 function Pkg:after_build_steps()
+  self:save_package()
   self:fix_pkgconfig()
-  self:copy_to_sysroot()
+end
+
+function Pkg:save_package()
+  local package_data = {}
+  if os.path.exists(self.package_file) then
+    package_data = dofile(self.package_file)
+  end
+
+  local exists_checker = table.create_filter(self.files)
+
+  local added_files = {}
+  for f in table.each(os.path.files(self.install_dir)) do
+    if not exists_checker[f] then
+      table.insert(added_files, f)
+    end
+  end
+
+  if package_data.files then
+    exists_checker = table.create_filter(package_data.files)
+    for f in table.each(added_files) do
+      if not package_data[self.tuplet] then
+        package_data[self.tuplet] = {}
+      end
+      table.insert(package_data[self.tuplet], f)
+    end
+  else
+    package_data.files = added_files
+    table.sort(package_data.files)
+  end
+  self.data.files = added_files
+
+  local package_file = io.open(self.package_file, "w+")
+  package_file:write('return ' .. table.serialize(package_data))
+  package_file:close()
 end
 
 function Pkg:fix_pkgconfig()
-  local pkgconfig = self.name .. '.pc'
-  if self.pkgconfig then
-    pkgconfig = self.pkgconfig
+  local pkgconfig_file = nil
+  for f in table.each(self.files) do
+    local filename = os.path.basename(f)
+    if filename:match("%.pc$") then
+      pkgconfig_file = os.path.join(self.install_dir, f)
+      break
+    end
   end
-  pkgconfig = os.path.join(self.install_dir, 'lib', 'pkgconfig', pkgconfig)
-  if not os.path.exists(pkgconfig) then return end
-  print('--- fix pkgconfig in ' .. pkgconfig)
+  if not pkgconfig_file then return end
 
-  local prefix = ''
-  ccpkg.edit(pkgconfig, function(line)
-    if line:match("^prefix=") then
-      prefix = line:match("^prefix=%s*(.*)")
-      return 'prefix=/usr'
-    elseif line:match("^includedir=") then
-      return os.path.join(line:gsub(prefix, '${prefix}'), self.library_arch)
-    elseif line:match("^libdir=") then
-      return os.path.join(line:gsub(prefix, '${prefix}'), self.library_arch)
-    elseif string.len(prefix) > 0 then
-      return line:gsub(prefix, '${prefix}')
+  print('--- fix pkgconfig: ' .. os.path.relpath(pkgconfig_file, self.project_dir))
+
+  ccpkg.edit(pkgconfig_file, function(line)
+    local var_name, value = line:match('^([%w_]+)%s*=%s*(.*)$')
+    if var_name then
+      if var_name == 'prefix' then
+        value = ''
+      elseif var_name == 'exec_prefix' then
+        value = '${prefix}'
+      elseif var_name == 'includedir' then
+        value = os.path.join('${prefix}', 'include')
+      elseif var_name == 'libdir' then
+        value = os.path.join('${prefix}', 'lib')
+      end
+      return ("%s=%s"):format(var_name, value)
     else
       return line
     end
   end)
-end
-
-function Pkg:copy_to_sysroot()
-  local src_lib_dir_root = os.path.join(self.install_dir, 'lib')
-  local src_include_dir_root = os.path.join(self.install_dir, 'include')
-  local dst_lib_dir_root = os.path.join(self.dirs.sysroot, 'usr', 'lib', self.library_arch)
-  local dst_include_dir_root = os.path.join(self.dirs.sysroot, 'usr', 'include', self.library_arch)
-
-  for root, dirs, files in os.walk(self.install_dir) do
-    for dir in table.each(dirs) do
-      local src_dir = os.path.join(root, dir)
-      if src_dir:startswith(src_include_dir_root) then
-        local dst_dir = os.path.join(dst_include_dir_root, os.path.relpath(src_dir, src_include_dir_root))
-        if not os.path.exists(dst_dir) then
-          os.mkdirs(dst_dir)
-        end
-      elseif src_dir:startswith(src_lib_dir_root) then
-        local dst_dir = os.path.join(dst_lib_dir_root, os.path.relpath(src_dir, src_lib_dir_root))
-        if not os.path.exists(dst_dir) then
-          os.mkdirs(dst_dir)
-        end
-      end
-    end
-
-    for f in table.each(files) do
-      local src_file = os.path.join(root, f)
-      if src_file:startswith(src_include_dir_root) then
-        local dst_file = os.path.join(dst_include_dir_root, os.path.relpath(src_file, src_include_dir_root))
-        os.copyfile(src_file, dst_file, {override=1})
-      elseif src_file:startswith(src_lib_dir_root) then
-        local dst_file = os.path.join(dst_lib_dir_root, os.path.relpath(src_file, src_lib_dir_root))
-        os.copyfile(src_file, dst_file, {override=1})
-      end
-    end
-  end
 end
 
 function Pkg:hash_file(full_path)

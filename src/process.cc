@@ -17,13 +17,12 @@
 #include "lauxlib.h"
 #include "process.h"
 
-using namespace process;
 namespace fs = std::filesystem;
 
-int Process::n_instance = 0;
+int CrossPlatformProcess::n_instance = 0;
 extern char **environ;
 
-Process::Process() {
+CrossPlatformProcess::CrossPlatformProcess() {
   if (n_instance++ > 0) throw std::runtime_error("some instances are not destructed.");
 
   for (int i = 0; environ[i]; ++i) {
@@ -41,11 +40,11 @@ Process::Process() {
   cwd = fs::current_path();
 }
 
-Process::~Process() {
+CrossPlatformProcess::~CrossPlatformProcess() {
   n_instance -= 1;
 }
 
-void Process::init(lua_State *L) {
+void CrossPlatformProcess::init(lua_State *L) {
   /* argument #1 */
   if (lua_type(L, 1) == LUA_TSTRING) {
     std::string cmd = lua_tostring(L, 1);
@@ -152,7 +151,7 @@ void Process::init(lua_State *L) {
   }
 }
 
-int Process::exec(lua_State *L) {
+int CrossPlatformProcess::exec(lua_State *L) {
   if (capture_output) {
     if (pipe2(stdout_pipefd, O_CLOEXEC) == -1) {
       lua_pushstring(L, strerror(errno));
@@ -175,7 +174,7 @@ int Process::exec(lua_State *L) {
   return fork_parent(L);
 }
 
-int Process::fork_parent(lua_State *L)
+int CrossPlatformProcess::fork_parent(lua_State *L)
 {
   lua_newtable(L);
   if (capture_output) {
@@ -255,7 +254,7 @@ int Process::fork_parent(lua_State *L)
   return 1;
 }
 
-void Process::fork_child(void)
+void CrossPlatformProcess::fork_child(void)
 {
   int i;
   std::vector<const char *> argv(args.size()+1, nullptr);
@@ -309,12 +308,9 @@ void Process::fork_child(void)
       printf("PWD=%s\n", cwd.c_str());
       printf("%s\n", envs["PATH"].c_str());
       for (i = 0; i < args.size(); ++i) {
-        if (i == 0) {
-          printf("%s \\\n", exe.c_str());
-        } else {
-          printf("  %s %c\n", argv[i], (i < args.size() - 1 ? '\\' : '\n'));
-        }
+        printf("%s%c", argv[i], ((i < args.size() - 1) ? ' ' : '\n'));
       }
+      printf("========================================\n\n");
     }
   }
 
@@ -324,7 +320,7 @@ void Process::fork_child(void)
   }
 }
 
-bool Process::child_is_running(lua_State *L)
+bool CrossPlatformProcess::child_is_running(lua_State *L)
 {
   if (WIFEXITED(waitpid_status) || WIFSIGNALED(waitpid_status)) {
     return false;
@@ -344,7 +340,7 @@ bool Process::child_is_running(lua_State *L)
   }
 }
 
-int  Process::wait_child(lua_State *L)
+int  CrossPlatformProcess::wait_child(lua_State *L)
 {
   int status = 0;
   pid_t ret;
@@ -366,7 +362,7 @@ int  Process::wait_child(lua_State *L)
   return status;
 }
 
-std::string Process::which(lua_State *L, const std::string &name)
+std::string CrossPlatformProcess::which(lua_State *L, const std::string &name)
 {
   const char *delimitors = ":";
   std::string paths = envs["PATH"];

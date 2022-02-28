@@ -18,7 +18,7 @@ local BZip2 = Pkg:new {
 function BZip2:patch_source()
   local src = os.path.join(ccpkg.ports_dir, "bzip2", "CMakeLists.txt")
   local dst = os.path.join(self.src_dir, "CMakeLists.txt")
-  os.copyfile(src, dst, {override=1})
+  os.copy_file(src, dst, {override=1})
 end
 
 return BZip2

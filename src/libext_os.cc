@@ -35,12 +35,10 @@ error:                   \
 ** python subprocess.run clone
 */
 static int ext_os_run(lua_State *L) {
-  using namespace process;
-
   int rv = 0;
 
   {
-    Process p;
+    CrossPlatformProcess p;
     try {
       p.init(L);
     } catch (const std::runtime_error &) {
@@ -64,6 +62,32 @@ static int ext_os_curdir(lua_State *L) {
     lua_pushstring(L, dir.c_str());
   }
   return 1;
+}
+
+static int ext_os_symlink(lua_State *L) {
+  const char *src = luaL_checkstring(L, 1);
+  const char *dst = luaL_checkstring(L, 2);
+
+  {
+    try {
+      if (fs::exists(src)) {
+        if (fs::is_directory(src)) {
+          fs::create_directory_symlink(src, dst);
+        } else {
+          fs::create_symlink(src, dst);
+        }
+      } else {
+        lua_pushfstring(L, "%s doesn't exist", src);
+        goto error;
+      }
+    } catch (const std::exception &e) {
+      lua_pushstring(L, e.what());
+      goto error;
+    }
+  }
+  return 1;
+
+  THROW_LUA_ERROR;
 }
 
 static int ext_os_mkdirs(lua_State *L) {
@@ -479,6 +503,70 @@ static int ext_os_path_files (lua_State *L) {
   return 1;
 }
 
+static int ext_os_path_isabs (lua_State *L) {
+  const char *path = luaL_checkstring(L, 1);
+
+  {
+    try {
+      lua_pushboolean(L, fs::path(path).is_absolute());
+    } catch (const std::exception &e) {
+      lua_pushstring(L, e.what());
+      goto error;
+    }
+  } /* c++ objects are destructed here */
+  return 1;
+
+  THROW_LUA_ERROR;
+}
+
+static int ext_os_path_isdir (lua_State *L) {
+  const char *path = luaL_checkstring(L, 1);
+
+  {
+    try {
+      lua_pushboolean(L, fs::is_directory(path));
+    } catch (const std::exception &e) {
+      lua_pushstring(L, e.what());
+      goto error;
+    }
+  } /* c++ objects are destructed here */
+  return 1;
+
+  THROW_LUA_ERROR;
+}
+
+static int ext_os_path_isfile (lua_State *L) {
+  const char *path = luaL_checkstring(L, 1);
+
+  {
+    try {
+      lua_pushboolean(L, fs::is_regular_file(path));
+    } catch (const std::exception &e) {
+      lua_pushstring(L, e.what());
+      goto error;
+    }
+  } /* c++ objects are destructed here */
+  return 1;
+
+  THROW_LUA_ERROR;
+}
+
+static int ext_os_path_islink (lua_State *L) {
+  const char *path = luaL_checkstring(L, 1);
+
+  {
+    try {
+      lua_pushboolean(L, fs::is_symlink(path));
+    } catch (const std::exception &e) {
+      lua_pushstring(L, e.what());
+      goto error;
+    }
+  } /* c++ objects are destructed here */
+  return 1;
+
+  THROW_LUA_ERROR;
+}
+
 /*
 ** extend os library
 */
@@ -490,7 +578,7 @@ LUAMOD_API void luaext_os (lua_State *L) {
     { "curdir", ext_os_curdir },
     { "listdir", ext_os_listdir },
     { "copy", ext_os_copy },
-    { "copyfile", ext_os_copyfile },
+    { "copy_file", ext_os_copyfile },
     { "which", ext_os_which },
     { "walk", ext_os_walk },
     { NULL, NULL }
@@ -506,6 +594,10 @@ LUAMOD_API void luaext_os (lua_State *L) {
     { "dirname", ext_os_path_dirname },
     { "splitext", ext_os_path_splitext },
     { "files", ext_os_path_files },
+    { "isabs", ext_os_path_isabs },
+    { "isdir", ext_os_path_isdir },
+    { "isfile", ext_os_path_isfile },
+    { "islink", ext_os_path_islink },
     { NULL, NULL }
   };
 

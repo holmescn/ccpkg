@@ -1,3 +1,5 @@
+---@diagnostic disable: undefined-field
+local ccpkg = require "ccpkg"
 local Pkg = require "ccpkg.pkg"
 local Python3 = Pkg:new {
   name="python3",
@@ -41,19 +43,18 @@ function Python3:before_configure(opt)
 end
 
 function Python3:before_build(opt)
-  local makefile_path = os.path.join(self.build_dir, "Makefile")
-  local lines = {}
-  for line in io.lines(makefile_path) do
+  local makefile = os.path.join(self.build_dir, "Makefile")
+  ccpkg.edit(makefile, function(line)
     if line:match("^OPT%s*=") then
-      table.insert(lines, line .. ' -fPIC -DPIC')
-    else
-      table.insert(lines, line)
+      return line .. ' -fPIC -DPIC'
     end
-  end
+    return line
+  end)
+  opt.env["LIBRARY_ARCH"] = self.library_arch
+end
 
-  local makefile_file = io.open(makefile_path, "w+")
-  makefile_file:write(table.concat(lines, '\n'))
-  makefile_file:close()
+function Python3:before_install(opt)
+  opt.args:insert(2, "prefix=" .. self.install_dir)
 end
 
 return Python3
