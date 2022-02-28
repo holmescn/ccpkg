@@ -84,6 +84,7 @@ function Pkg:is_installed()
       local full_path = os.path.join(self.dirs.installed, f)
       if os.path.exists(full_path) then
         os.remove(full_path)
+        print("--- remove " .. full_path)
       end
     end
   end

@@ -231,7 +231,11 @@ int CrossPlatformProcess::fork_parent(lua_State *L)
     lua_setfield(L, -2, "exit_reason");
 
     if (check && exit_code != 0) {
-      lua_pushfstring(L, "'run' exit with %d", exit_code);
+      if (file.empty()) {
+        lua_pushfstring(L, "'run' exit with %d", exit_code);
+      } else {
+        lua_pushfstring(L, "%s exit with %d, see %s for details.", exe.c_str(), exit_code, file.c_str());
+      }
       throw std::runtime_error(lua_tostring(L, -1));
     }
   }
@@ -310,7 +314,7 @@ void CrossPlatformProcess::fork_child(void)
       for (i = 0; i < args.size(); ++i) {
         printf("%s%c", argv[i], ((i < args.size() - 1) ? ' ' : '\n'));
       }
-      printf("========================================\n\n");
+      printf("\n");
     }
   }
 

@@ -19,6 +19,7 @@ function Download:url(pkg, url)
   if pkg.filename then
     filename = pkg.filename:fmt {version=pkg.version}
   end
+
   local full_path = os.path.join(pkg.dirs.downloads, filename)
   pkg.data.downloaded = full_path
 
