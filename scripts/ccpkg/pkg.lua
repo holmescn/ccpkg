@@ -111,14 +111,17 @@ function Pkg:unpack_source()
     error("unknown file type of " .. filename)
   end
 
-  local dir_1 = os.path.join(tmp_dir, name)
-  if os.path.exists(dir_1) then
-    os.rmdirs(dir_1)
+  local src_dir = os.path.join(tmp_dir, self.full_name .. '-src')
+  if os.path.exists(src_dir) then
+    os.rmdirs(src_dir)
   end
 
-  local dir_2 = os.path.join(tmp_dir, ("%s-%s-src"):format(self.name, self.version))
-  if os.path.exists(dir_2) then
-    os.rmdirs(dir_2)
+  local dirs_filter = {}
+  for root, dirs, _ in os.walk(tmp_dir) do
+    for d in table.each(dirs) do
+      dirs_filter[os.path.join(root, d)] = true
+    end
+    break
   end
 
   if is_tarball then
@@ -128,8 +131,18 @@ function Pkg:unpack_source()
     error("handle zip file please")
   end
 
-  os.rename(dir_1, dir_2)
-  self.data.src_dir = dir_2
+  for root, dirs, _ in os.walk(tmp_dir) do
+    for d in table.each(dirs) do
+      local dir = os.path.join(root, d)
+      if not dirs_filter[dir] then
+        os.rename(dir, src_dir)
+        break
+      end
+    end
+    break
+  end
+
+  self.data.src_dir = src_dir
 end
 
 function Pkg:makedirs()
