@@ -18,6 +18,7 @@ return {
       modules={'spdlog', 'fmt'},
       min_sdk=23,
       target_sdk=31,
+      maven=true,
     }
   }
 }
