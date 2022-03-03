@@ -123,24 +123,36 @@ static int ext_os_rmdirs(lua_State *L) {
 }
 
 static int ext_os_listdir(lua_State *L) {
-  const char *s = luaL_checkstring(L, 1);
+  typedef std::pair<int, std::vector<std::string>> state_t;
+  int rv = 1;
 
-  {
-    auto start = fs::path(s);
+  if (lua_type(L, 1) == LUA_TUSERDATA) {
+    state_t *s = (state_t *)lua_touserdata(L, 1);
+    if (s->first < s->second.size()) {
+      lua_pushstring(L, s->second[s->first++].c_str());
+    } else {
+      s->~state_t();
+      lua_pushnil(L);
+    }
+  } else {
+    const char *start = luaL_checkstring(L, 1);
+    const size_t nbytes = sizeof(state_t);
+    lua_pushcfunction(L, ext_os_listdir); /* f */
+    void *ud = lua_newuserdata(L, nbytes);
+    state_t *s = new (ud) state_t;
+
+    s->first = 0;
     try {
-      int i = 0;
-      lua_newtable(L);
       for (const auto& dir_entry : std::filesystem::directory_iterator{start}) {
-        const auto p = fs::relative(dir_entry.path(), start);
-        lua_pushstring(L, p.c_str());
-        lua_seti(L, -2, ++i);
+        s->second.push_back(fs::relative(dir_entry.path(), start));
       }
     } catch (const std::exception &e) {
       lua_pushstring(L, e.what());
       goto error;
     }
+    rv = 2;
   }
-  return 1;
+  return rv;
 
   THROW_LUA_ERROR;
 }
@@ -203,6 +215,23 @@ static int ext_os_copyfile(lua_State *L) {
     auto options = opt_copy_options(L, 3);
     try {
       lua_pushboolean(L, fs::copy_file(src, dst, options));
+    } catch (const std::exception &e) {
+      lua_pushstring(L, e.what());
+      goto error;
+    }
+  } /* c++ objecs are destructed. */
+  return 1;
+
+  THROW_LUA_ERROR;
+}
+
+static int ext_os_readsymlink(lua_State *L) {
+  const char *path = luaL_checkstring(L, 1);
+
+  {
+    try {
+      const auto &p = fs::read_symlink(path);
+      lua_pushstring(L, p.c_str());
     } catch (const std::exception &e) {
       lua_pushstring(L, e.what());
       goto error;
@@ -579,6 +608,7 @@ LUAMOD_API void luaext_os (lua_State *L) {
     { "listdir", ext_os_listdir },
     { "copy", ext_os_copy },
     { "copy_file", ext_os_copyfile },
+    { "read_symlink", ext_os_readsymlink },
     { "which", ext_os_which },
     { "walk", ext_os_walk },
     { NULL, NULL }

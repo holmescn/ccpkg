@@ -1,4 +1,5 @@
 ---@diagnostic disable: undefined-field
+local md5 = require "3rdparty.md5"
 local root_dir = os.getenv("CCPKG_ROOT")
 local ccpkg = {
   root_dir=root_dir,
@@ -37,6 +38,17 @@ function ccpkg.edit(filename, f)
   local fp = io.open(filename, 'w+')
   fp:write(table.concat(lines, '\n'))
   fp:close()
+end
+
+function ccpkg.digest(file_path)
+  local f = io.open(file_path, 'rb')
+  local digest = md5.sum(f:read('a'))
+  f:close()
+  return digest
+end
+
+function ccpkg.hexdigest(file_path)
+  return md5.tohex(ccpkg.digest(file_path))
 end
 
 return ccpkg

@@ -8,6 +8,10 @@ function BuildSystem:new(o)
   return o
 end
 
+function BuildSystem:create_opt(pkg, opt)
+  return opt
+end
+
 function BuildSystem:execute(step, pkg, opt)
   local log_file = os.path.join(pkg.build_base_dir, ("%s-%s.log"):format(
     (step == "configure" and "config" or step),
@@ -18,6 +22,18 @@ function BuildSystem:execute(step, pkg, opt)
   end
   opt.cwd = opt.cwd or pkg.build_dir
   return os.run(opt.args, opt)
+end
+
+function BuildSystem:configure(pkg, opt)
+  self:execute('configure', pkg, opt)
+end
+
+function BuildSystem:build(pkg, opt)
+  self:execute('build', pkg, opt)
+end
+
+function BuildSystem:install(pkg, opt)
+  self:execute('install', pkg, opt)
 end
 
 function BuildSystem:execute_hook(prefix, step, pkg, opt)

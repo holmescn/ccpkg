@@ -4,13 +4,9 @@ local Command = {}
 
 function Command:init(parser)
   local cmd = parser:command("install i", "Install the project")
-  cmd:option "-c" "--project_file"
-    :description "Specify the project file."
-    :default "project.lua"
   cmd:option "-j" "--jobs"
     :description "Allow N jobs at once."
     :default "2"
-
   parser.commands['install'] = self
 end
 
@@ -59,8 +55,9 @@ function Command:install_pkg(pkg)
   pkg:patch_source()
 
   pkg:before_build_steps()
-  for step in table.values {"configure", "build", "install"} do
-    local opt = {env=table.clone(pkg.env), check=true}
+  for step in table.each {"configure", "build", "install"} do
+    local opt = pkg.buildsystem:create_opt(pkg, {env=table.clone(pkg.env), check=true})
+
     print("--- " .. step .. " step")
     pkg.platform:execute(step, pkg, opt)
     pkg.buildsystem:execute_hook('before', step, pkg, opt)

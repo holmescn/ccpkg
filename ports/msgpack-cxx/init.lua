@@ -14,11 +14,11 @@ local MessagePack = Pkg:new {
 }
 
 function MessagePack:before_configure(opt)
-  opt.args:append("-DMSGPACK_CXX17=ON")
-  opt.args:append("-DMSGPACK_USE_BOOST=OFF")
-  opt.args:append("-DMSGPACK_BUILD_DOCS=OFF")
+  opt.options['MSGPACK_CXX17'] = 'ON'
+  opt.options['MSGPACK_USE_BOOST'] = 'OFF'
+  opt.options['MSGPACK_BUILD_DOCS'] = 'OFF'
   if self.machine == "arm" or self.machine == "x86" then
-    opt.args:append("-DMSGPACK_32BIT=ON")
+    opt.options['MSGPACK_32BIT'] = 'ON'
   end
 end
 
