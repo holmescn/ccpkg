@@ -1,3 +1,4 @@
+---@diagnostic disable: undefined-field
 local Args = require "ccpkg.args"
 local BuildSystem = require "buildsystem"
 local ConfigureMake = BuildSystem:new {
@@ -12,15 +13,22 @@ function ConfigureMake:init(pkg)
   return self
 end
 
+function ConfigureMake:create_opt(pkg, opt)
+  opt.args = Args:new {}
+  return opt
+end
+
 function ConfigureMake:before_configure(pkg, opt)
   local relative_to_src = os.path.relpath(pkg.src_dir, pkg.build_dir)
   opt.args:insert( 1, os.path.join(relative_to_src, "configure") )
   opt.args:append("--prefix=" .. pkg.install_dir)
+end
 
-  opt['_args'] = opt.args
+function ConfigureMake:configure(pkg, opt)
   opt.args = Args:new {
     self.sh_path, "-c", table.concat(opt.args, " ")
   }
+  BuildSystem['configure'](self, pkg, opt)
 end
 
 function ConfigureMake:before_build(pkg, opt)

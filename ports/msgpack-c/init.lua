@@ -13,8 +13,4 @@ local MessagePack = Pkg:new {
   buildsystem="cmake"
 }
 
-function MessagePack:before_configure(opt)
-  opt.args:append("-DCMAKE_INSTALL_PREFIX=" .. self.install_dir)
-end
-
 return MessagePack

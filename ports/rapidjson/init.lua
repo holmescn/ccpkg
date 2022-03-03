@@ -18,10 +18,10 @@ local RapidJSON = Pkg:new {
 }
 
 function RapidJSON:before_configure(opt)
-  opt.args:append("-DRAPIDJSON_BUILD_DOC=OFF")
-  opt.args:append("-DRAPIDJSON_BUILD_EXAMPLES=OFF")
-  opt.args:append("-DRAPIDJSON_BUILD_TESTS=OFF")
-  opt.args:append("-DRAPIDJSON_HAS_STDSTRING=ON")
+  opt.options['RAPIDJSON_BUILD_DOC'] = 'OFF'
+  opt.options['RAPIDJSON_BUILD_EXAMPLES'] = 'OFF'
+  opt.options['RAPIDJSON_BUILD_TESTS'] = 'OFF'
+  opt.options['RAPIDJSON_HAS_STDSTRING'] = 'ON'
 end
 
 return RapidJSON

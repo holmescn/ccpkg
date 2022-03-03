@@ -38,13 +38,14 @@ function Android:init(project)
   self.toolchain_file = os.path.join(self.ndk_home, "build", "cmake", "android.toolchain.cmake")
   self:detect_ndk_version()
 
-  local default_native_api_level = 23
-  self.native_api_level = project.android.native_api_level or default_native_api_level
-  self.android_stl = project.android_stl or "c++_shared"
   self.android_ld = project.android_ld or "lld"
+  self.android_stl = project.android_stl or "c++_shared"
+
+  local default_ndk_api = 16
+  self.ndk_api = project.android.ndk_api or default_ndk_api
 
   self.llvm_path = os.path.join(self.ndk_home, 'toolchains', 'llvm', 'prebuilt')
-  for dir in table.values(os.listdir(self.llvm_path)) do
+  for dir in os.listdir(self.llvm_path) do
     self.llvm_path = os.path.join(self.llvm_path, dir)
     break
   end
@@ -73,31 +74,27 @@ end
 
 function Android:cmake(step, pkg, opt)
   if step == "configure" then
-    opt.args = Args:new {
-      -- "-DANDROID_LD=" .. self.android_ld,
-      "-DANDROID_STL=" .. self.android_stl,
-      "-DANDROID_ABI=" .. self.data[pkg.machine].abi,
-      "-DANDROID_PLATFORM=android-" .. self.native_api_level,
-      "-DCMAKE_TOOLCHAIN_FILE=" .. self.toolchain_file,
-    }
+    -- opt.options['ANDROID_LD'] = self.android_ld
+    opt.options['ANDROID_STL'] = self.android_stl
+    opt.options['ANDROID_ABI'] = self.data[pkg.machine].abi
+    opt.options['ANDROID_PLATFORM'] = 'android-' .. self.ndk_api
+    opt.options['CMAKE_TOOLCHAIN_FILE'] = self.toolchain_file
   end
 end
 
 function Android:configure_make(step, pkg, opt)
   if step == "configure" then
-    opt.env["CC"] = self.data[pkg.machine].clang:format(self.native_api_level)
+    opt.env["CC"] = self.data[pkg.machine].clang:format(self.ndk_api)
     opt.env["CXX"] = opt.env['CC'] .. '++'
     opt.env["AR"] = "llvm-ar"
     opt.env["AS"] = "llvm-as"
     opt.env["LD"] = "ld.lld"
     opt.env["NM"] = "llvm-nm"
-    opt.env["OBJDUMP"] = "llvm-objdump"
-    opt.env["RANLIB"] = "llvm-ranlib"
-    opt.env["READELF"] = "llvm-readelf"
     opt.env["STRIP"] = "llvm-strip"
-    opt.args = Args:new {
-      "--host=" .. self.data[pkg.machine].host,
-    }
+    opt.env["RANLIB"] = "llvm-ranlib"
+    opt.env["OBJDUMP"] = "llvm-objdump"
+    opt.env["READELF"] = "llvm-readelf"
+    opt.args:append("--host=" .. self.data[pkg.machine].host)
   end
   table.insert(opt.env["PATH"], 1, os.path.join(self.llvm_path, "bin"))
 end

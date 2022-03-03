@@ -1,3 +1,5 @@
+---@diagnostic disable: undefined-field
+local buildsystem = require "buildsystem"
 local Args = require "ccpkg.args"
 local Pkg = require "ccpkg.pkg"
 local OpenSSL = Pkg:new {
@@ -14,19 +16,16 @@ local OpenSSL = Pkg:new {
   buildsystem="configure_make"
 }
 
-function OpenSSL:before_configure(opt)
+function OpenSSL:configure(opt)
   local perl_path = os.which("perl")
-  if self.platform.name == "android" then
-    -- use perl instead of sh
-    opt['_args'][1] = opt['_args'][1]:gsub("configure", "Configure")
-    for i, v in ipairs(opt['_args']) do
-      if v:match("^--host=") then
-        table.remove(opt['_args'], i)
-        break
-      end
-    end
-    opt['_args']:append("-D__ANDROID_API__=" .. self.platform.native_api_level)
+  -- use perl instead of sh
+  local args = Args:new {perl_path}
+  local configure_script = opt.args[1]:gsub("configure", "Configure")
+  args:append(configure_script)
+  args:append('--prefix=' .. self.install_dir)
 
+  if self.platform.name == "android" then
+    args:append("-D__ANDROID_API__=" .. self.platform.ndk_api)
     local arch_map = {
       arm='android-arm',
       arm64='android-arm64',
@@ -34,14 +33,13 @@ function OpenSSL:before_configure(opt)
       x64='android-x86_64',
     }
     if arch_map[self.machine] then
-      opt['_args']:append(arch_map[self.machine])
+      args:append(arch_map[self.machine])
     else
       error("unsupported android arch: " .. self.machine)
     end
-
-    opt.args = Args:new {perl_path}
-    opt.args:extend(opt['_args'])
   end
+  opt.args = args
+  buildsystem:execute('configure', self, opt)
 end
 
 return OpenSSL

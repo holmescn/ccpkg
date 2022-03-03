@@ -1,6 +1,5 @@
 ---@diagnostic disable: undefined-field
 local ccpkg = require "ccpkg"
-local md5 = require "3rdparty.md5"
 local Pkg = {__index=function (t, key)
   if rawget(t, 'data') then
     if t.data[key] then
@@ -35,8 +34,8 @@ end
 
 function Pkg:init(opt, spec)
   self.data = {env={}}
-  self.data.tuplet = opt.tuplet
-  self.data.machine = opt.machine
+  self.data.tuplet = opt.tuplet or ''
+  self.data.machine = opt.machine or ''
   self.data.project = opt.project
   self.data.platform = opt.platform
   self.data.patch_path = os.which('patch')
@@ -202,9 +201,9 @@ end
 
 function Pkg:execute(step, opt)
   if self[step] then
-    self[step](self, step, opt)
+    self[step](self, opt)
   else
-    self.buildsystem:execute(step, self, opt)
+    self.buildsystem[step](self.buildsystem, self, opt)
   end
 end
 
@@ -221,7 +220,10 @@ function Pkg:after_build_steps()
 end
 
 function Pkg:save_package()
-  local package_data = {}
+  local package_data = {
+    name=self.name,
+    version=self.version
+  }
   if os.path.exists(self.package_file) then
     package_data = dofile(self.package_file)
   end

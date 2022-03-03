@@ -28,57 +28,6 @@ function table.dump(o, indent)
   end
 end
 
-function table.clone(o)
-  if type(o) == "table" then
-    local t = {}
-    for k, v in pairs(o) do
-      t[k] = table.clone(v)
-    end
-    return t
-  else
-    return o
-  end
-end
-
-function table.sorted_pairs(t)
-  local keys = {}
-  for k, _ in pairs(t) do
-    table.insert(keys, k)
-  end
-  table.sort(keys)
-
-  local iterator, s, i = ipairs(keys)
-
-  return function (state)
-    local next_i, k = iterator(state, i)
-    i = next_i
-    return k, t[k]
-  end, s, i
-end
-
-function table.values(t)
-  return table.each(t, pairs)
-end
-
-function table.each(t, f)
-  f = f or ipairs
-  local iterator, s, i = f(t)
-
-  return function(state)
-    local next_i, v = iterator(state, i)
-    i = next_i
-    return v
-  end, s, i
-end
-
-function table.index(t, v)
-  for index, value in pairs(t) do
-    if v == value then
-      return index
-    end
-  end
-end
-
 function table.serialize(o, indent)
   indent = indent or 0
   if type(o) == "table" then
@@ -111,10 +60,69 @@ function table.serialize(o, indent)
   end
 end
 
-function table.len(t, f)
-  f = f or pairs
+function table.clone(o)
+  if type(o) == "table" then
+    local t = {}
+    for k, v in pairs(o) do
+      t[k] = table.clone(v)
+    end
+    return t
+  else
+    return o
+  end
+end
+
+function table.sorted_pairs(t)
+  local keys = {}
+  for k, _ in pairs(t) do
+    table.insert(keys, k)
+  end
+  table.sort(keys)
+
+  local iterator, s, i = ipairs(keys)
+
+  return function (state)
+    local next_i, k = iterator(state, i)
+    i = next_i
+    return k, t[k]
+  end, s, i
+end
+
+function table.each(t)
+  local s = nil
+  local key = nil
+  local iterator = nil
+  if t[1] == nil then
+    iterator, s, key = pairs(t)
+  else
+    iterator, s, key = ipairs(t)
+  end
+
+  return function(state)
+    local next_key, value = iterator(state, key)
+    key = next_key
+    return value
+  end, s, key
+end
+
+table.values = table.each
+
+function table.index(t, v)
+  local f = ipairs
+  if t[1] == nil then
+    f = pairs
+  end
+
+  for index, value in pairs(t) do
+    if v == value then
+      return index
+    end
+  end
+end
+
+function table.len(t)
   local n = 0
-  for _, _ in f(t) do
+  for _, _ in pairs(t) do
     n = n + 1
   end
   return n

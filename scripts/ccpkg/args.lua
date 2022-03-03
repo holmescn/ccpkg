@@ -20,7 +20,7 @@ function Args:append(...)
 end
 
 function Args:extend(t)
-  for v in table.values(t) do
+  for v in table.each(t) do
     table.insert(self, v)
   end
   return self
