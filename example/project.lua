@@ -1,7 +1,7 @@
 return {
   tuplets={
-    "x64-linux"
-    -- "arm-android",
+    "x64-linux",
+    "arm-android",
     -- "arm64-android",
     -- "x86-android", "x64-android"
   },
@@ -10,7 +10,16 @@ return {
     ndk_api=23
   },
   dependencies={
-    "spdlog", "libffi",
+    "libffi",
+    "spdlog",
+    {
+      name="msgpack-cxx",
+      version="latest",
+      configure_options={
+        MSGPACK_CXX17="ON",
+        MSGPACK_USE_BOOST="OFF",
+      }
+    }
   },
   export={
     {

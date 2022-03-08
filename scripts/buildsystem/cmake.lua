@@ -6,11 +6,15 @@ local CMake = BuildSystem:new {
 }
 
 function CMake:init(pkg)
-  self.cmake_path = os.which("cmake")
-  self.ninja_path = os.which("ninja")
-  assert(self.cmake_path, "cmake is not found")
-  assert(self.ninja_path, "ninja is not found")
-  return self
+  local o = {}
+  setmetatable(o, self)
+  self.__index = self
+
+  o.cmake_path = os.which("cmake")
+  o.ninja_path = os.which("ninja")
+  assert(o.cmake_path, "cmake is not found")
+  assert(o.ninja_path, "ninja is not found")
+  return o
 end
 
 function CMake:create_opt(pkg, opt)
@@ -21,11 +25,16 @@ end
 function CMake:before_configure(pkg, opt)
   opt.options['CMAKE_INSTALL_PREFIX'] = pkg.install_dir
   opt.options['CMAKE_FIND_ROOT_PATH'] = pkg.install_dir
+  if pkg.configure_options then
+    for option, value in pairs(pkg.configure_options) do
+      opt.options[option] = value
+    end
+  end
 end
 
 function CMake:configure(pkg, opt)
   opt.args = Args:new {self.cmake_path}
-  for k, v in pairs(opt.options) do
+  for k, v in table.sorted_pairs(opt.options) do
     opt.args:append("-D" .. k .. "=" .. v)
   end
 

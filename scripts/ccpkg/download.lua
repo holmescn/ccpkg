@@ -1,3 +1,4 @@
+---@diagnostic disable: undefined-field
 local Download = {}
 
 function Download:checksum(pkg, full_path)
@@ -20,8 +21,8 @@ function Download:url(pkg, url)
     filename = pkg.filename:fmt {version=pkg.version}
   end
 
-  local full_path = os.path.join(pkg.dirs.downloads, filename)
-  pkg.data.downloaded = full_path
+  local full_path = os.path.join(pkg.project.dirs.downloads, filename)
+  pkg.downloaded = full_path
 
   if os.path.exists(full_path) then
     -- TODO check file size
@@ -31,11 +32,21 @@ function Download:url(pkg, url)
     os.remove(full_path)
   end
 
+  local cmd = nil
+  local axel_path = os.which("axel")
   local curl_path = os.which("curl")
-  if curl_path then
-    local cmd = ("%s -o %s %s"):format(curl_path, full_path, url)
-    assert(os.execute(cmd), ("download %s failed"):format(url))
+  local wget_path = os.which("wget")
+  if axel_path then
+    cmd = ("%s --search=4 --num-connections=4 --output=%s %s"):format(axel_path, full_path, url)
+  elseif wget_path then
+    cmd = ("%s --continue --tries=3 --output-file=%s %s"):format(wget_path, full_path, url)
+  elseif curl_path then
+    cmd = ("%s --retry 3 --parallel --output %s %s"):format(curl_path, full_path, url)
+  else
+    error("no download program found, support: axel, wget and curl")
   end
+  print("--- downloading " .. url .. ' -> ' .. os.path.relpath(full_path, pkg.project_dir))
+  assert(os.execute(cmd), ("download %s failed"):format(url))
   assert(self:checksum(pkg, full_path), ("download %s failed"):format(url))
 end
 

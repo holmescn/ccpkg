@@ -1,69 +1,60 @@
 ---@diagnostic disable: undefined-field
 local ccpkg = require "ccpkg"
-local Pkg = {__index=function (t, key)
-  if rawget(t, 'data') then
-    if t.data[key] then
-      -- print('return t.data["' .. key .. '"]')
-      return t.data[key]
-    end
-    if t.data['version'] and t.versions[t.data['version']][key] then
-      -- print('return t.versions["' .. t.data['version'] .. '"]["' .. key .. '"]')
-      return t.versions[t.version][key]
-    end
-  end
+local function search(t, key)
+  -- print(string.rep('-', 20))
+  -- print('key', key)
+  -- for k, v in pairs(t) do
+  --   print(k, type(v))
+  -- end
 
+  -- follow chain
   local mt = getmetatable(t)
+  if rawget(t, 'version') and mt.versions[t.version] then
+    local v = mt.versions[t.version][key]
+    if v then return v end
+  end
   if mt[key] then
-    -- print('return mt["' .. key .. '"]')
     return mt[key]
   end
-
-  if rawget(t, 'data') then
-    if t.data['project'] and t.data['project'][key] then
-      -- print('return t.project["' .. key .. '"]')
-      return t.data.project[key]
-    end
-  end
-  -- print(key .. ' not found')
-end}
+end
+local Pkg = {__index=search}
 
 function Pkg:new(o)
   setmetatable(o, self)
   return o
 end
 
-function Pkg:init(opt, spec)
-  self.data = {env={}}
-  self.data.tuplet = opt.tuplet or ''
-  self.data.machine = opt.machine or ''
-  self.data.project = opt.project
-  self.data.platform = opt.platform
-  self.data.patch_path = os.which('patch')
-  self.data.env['PATH'] = os.getenv("PATH"):split(os.pathsep)
-  self.data.pkg_path = os.path.join(ccpkg.ports_dir, self.name)
+function Pkg:init(projeect, spec)
+  local o = {env={}}
+  setmetatable(o, self)
+  self.__index = search
+
+  o.project = projeect
+  o.tuplet = ''
+  o.machine = ''
+  o.patch_path = os.which('patch')
+  o.env['PATH'] = os.getenv("PATH"):split(os.pathsep)
+  o.pkg_path = os.path.join(ccpkg.ports_dir, self.name)
 
   for k, v in pairs(spec) do
-    self.data[k] = v
+    o[k] = v
   end
 
   if spec.version == 'latest' then
-    self.data.version = self.versions[spec.version]
+    o.version = self.versions[spec.version]
   end
 
-  if not self.versions[self.version] then
-    error(("%s do not have version '%s'"):format(self.name, self.version))
+  if not self.versions[o.version] then
+    error(("%s do not have version '%s'"):format(self.name, o.version))
   end
 
-  if type(self.buildsystem) == "string" then
-    self.buildsystem = require('buildsystem.' .. self.buildsystem):init(self)
-  end
-
-  self.data.full_name = self.name .. '-' .. self.version
-  return self
+  o.buildsystem = require('buildsystem.' .. self.buildsystem):init(self)
+  o.full_name = self.name .. '-' .. o.version
+  return o
 end
 
 function Pkg:is_installed()
-  local package_file = os.path.join(self.dirs.packages, self.full_name .. '.lua')
+  local package_file = os.path.join(self.project.dirs.packages, self.full_name .. '.lua')
   if not os.path.exists(package_file) then
     return false
   end
@@ -71,7 +62,7 @@ function Pkg:is_installed()
   local package_data = dofile(package_file)
   local installed = true
   for f in table.each(package_data.files) do
-    local full_path = os.path.join(self.dirs.installed, self.tuplet, f)
+    local full_path = os.path.join(self.project.dirs.installed, self.tuplet, f)
     if not os.path.exists(full_path) then
       installed = false
       break
@@ -80,7 +71,7 @@ function Pkg:is_installed()
 
   if not installed then
     for f in table.each(package_data.files) do
-      local full_path = os.path.join(self.dirs.installed, f)
+      local full_path = os.path.join(self.project.dirs.installed, f)
       if os.path.exists(full_path) then
         os.remove(full_path)
         print("--- remove " .. full_path)
@@ -98,7 +89,7 @@ end
 function Pkg:unpack_source()
   local is_zip = false
   local is_tarball = false
-  local tmp_dir = self.dirs.tmp
+  local tmp_dir = self.project.dirs.tmp
   local filename = os.path.basename(self.downloaded)
   local name, ext = os.path.splitext(filename)
   if name:match("%.tar$") then
@@ -141,23 +132,23 @@ function Pkg:unpack_source()
     break
   end
 
-  self.data.src_dir = src_dir
+  self.src_dir = src_dir
 end
 
 function Pkg:makedirs()
-  self.data.build_base_dir = self.src_dir:gsub("-src$", "-build")
+  self.build_base_dir = self.src_dir:gsub("-src$", "-build")
   if not os.path.exists(self.build_base_dir) then
     os.mkdirs(self.build_base_dir)
   end
 
-  self.data.build_dir = os.path.join(self.build_base_dir, self.tuplet)
+  self.build_dir = os.path.join(self.build_base_dir, self.tuplet)
   if os.path.exists(self.build_dir) then
     os.rmdirs(self.build_dir)
   end
   os.mkdirs(self.build_dir)
 
-  self.data.install_dir = os.path.join(self.dirs.installed, self.tuplet)
-  self.data.package_file = os.path.join(self.dirs.packages, self.full_name .. '.lua')
+  self.install_dir = os.path.join(self.project.dirs.installed, self.tuplet)
+  self.package_file = os.path.join(self.project.dirs.packages, self.full_name .. '.lua')
 end
 
 function Pkg:patch_source()
@@ -196,7 +187,7 @@ end
 
 function Pkg:before_build_steps()
   self:makedirs()
-  self.data.files = os.path.files(self.install_dir)
+  self.files = os.path.files(self.install_dir)
 end
 
 function Pkg:execute(step, opt)
@@ -254,7 +245,7 @@ function Pkg:save_package()
     package_data.files = added_files
     table.sort(package_data.files)
   end
-  self.data.files = added_files
+  self.files = added_files
 
   local package_file = io.open(self.package_file, "w+")
   package_file:write('return ' .. table.serialize(package_data))

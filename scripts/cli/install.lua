@@ -21,28 +21,31 @@ function Command:execute(args)
   project.args = args
 
   -- TODO resolve dependencies and versions
-  for tuplet in table.each(project.tuplets) do
-    local machine, platform_name = tuplet:match("(%w+)-(%w+)")
-    local platform = require('platform.' .. platform_name):init(project)
-    self:do_install(project.dependencies, {
-      machine=machine, tuplet=tuplet,
-      project=project, platform=platform
-    })
-  end
+  self:do_install(project.dependencies, project)
 end
 
-function Command:do_install(dependencies, opt)
+function Command:do_install(dependencies, project)
   for spec in table.each(dependencies) do
     local pkg = nil
     if type(spec) == "string" then
-      pkg = require('ports.' .. spec):init(opt, {name=spec, version='latest'})
+      pkg = require('ports.' .. spec):init(project, {name=spec, version='latest'})
     else
-      pkg = require('ports.' .. spec.name):init(opt, spec)
+      pkg = require('ports.' .. spec.name):init(project, spec)
     end
 
-    self:do_install(pkg:dependencies(), opt)
-    if not pkg:is_installed() then
-      self:install_pkg(pkg)
+    self:do_install(pkg:dependencies(), project)
+
+    pkg:download_source()
+    for tuplet in table.each(project.tuplets) do
+      local machine, platform_name = tuplet:match("(%w+)-(%w+)")
+      local platform = require('platform.' .. platform_name):init(project)
+
+      pkg.tuplet = tuplet
+      pkg.machine = machine
+      pkg.platform = platform
+      if not pkg:is_installed() then
+        self:install_pkg(pkg)
+      end
     end
   end
 end
@@ -50,7 +53,6 @@ end
 function Command:install_pkg(pkg)
   print (("--- build %s-%s for %s"):format(pkg.name, pkg.version, pkg.tuplet))
 
-  pkg:download_source()
   pkg:unpack_source()
   pkg:patch_source()
 

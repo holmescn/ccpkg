@@ -24,6 +24,9 @@ local Linux = Platform:new {
 }
 
 function Linux:init(project)
+  if self.initialized then return self end
+
+  self.initialized = true
   return self
 end
 

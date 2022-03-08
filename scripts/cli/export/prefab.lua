@@ -34,6 +34,11 @@ function PrefabExporter:execute(project, spec)
   self.data.target_sdk = self.target_sdk or 31
   self.data.ndk_api = self.ndk_api or self.platform.ndk_api
   self.data.group_id = self.group_id or 'org.ccpkg.ndk.support'
+  self.data.artifact_id = self.artifact_id or self.name
+  if not self.data.version then
+    local package_data = self:load_package(self.name)
+    self.data.version = package_data.version
+  end
 
   self:make_dirs()
   print("--- copy files")
@@ -107,7 +112,7 @@ end
 function PrefabExporter:copy_module_abi_files(mod, files, machine, abi_dir)
   for f in table.each(files) do
     local src = os.path.join(self.dirs.installed, machine .. '-android', f)
-    assert(os.path.exists(src), src .. ' not exists')
+    -- assert(os.path.exists(src), src .. ' not exists')
 
     if f:startswith('include') then
       local dst = os.path.join(abi_dir, f)
@@ -221,7 +226,7 @@ function PrefabExporter:write_android_manifest()
   self.data.android_manifest_file = os.path.join(self.aar_dir, 'AndroidManifest.xml')
   print('--- write to ' .. os.path.relpath(self.android_manifest_file, self.dirs.project_dir))
 
-  local package_name = "org.ccpkg.ndk.support." .. self.name
+  local package_name = "org.ccpkg.ndk.support." .. self.artifact_id
   local manifest_file = io.open(self.android_manifest_file, 'w+')
   manifest_file:write(table.concat({
     '<manifest xmlns:android="http://schemas.android.com/apk/res/android"',
@@ -235,7 +240,6 @@ function PrefabExporter:write_android_manifest()
 end
 
 function PrefabExporter:write_prefab_json()
-  local package_data = self:load_package(self.name)
   self.data.prefab_json_file = os.path.join(self.prefab_dir, 'prefab.json')
   print('--- write to ' .. os.path.relpath(self.prefab_json_file, self.dirs.project_dir))
 
@@ -243,8 +247,8 @@ function PrefabExporter:write_prefab_json()
   prefab_file:write(table.concat({
     '{',
     '  "schema_version": 2',
-    ', "name": "' .. self.name .. '"',
-    ', "version": "' .. package_data.version .. '"',
+    ', "name": "' .. self.artifact_id .. '"',
+    ', "version": "' .. self.version .. '"',
     ', "dependencies": []',
     '}',
   }, '\n'))
@@ -254,8 +258,7 @@ end
 function PrefabExporter:make_aar_file()
   local jar_path = os.which('jar')
   local zip_path = os.which('zip')
-  local package_data = self:load_package(self.name)
-  local aar_file = ("%s-%s.aar"):format(self.name, package_data.version)
+  local aar_file = ("%s-%s.aar"):format(self.name, self.version)
   self.data.aar_file = os.path.join(self.package_dir, aar_file)
   print('--- make ' .. aar_file)
 
@@ -274,11 +277,10 @@ function PrefabExporter:make_aar_file()
 end
 
 function PrefabExporter:local_maven_install()
-  local package_data = self:load_package(self.name)
   local mvn_path = os.which('mvn')
   assert(mvn_path, 'mvn is not found in $PATH')
 
-  local log_file = ('export-%s-%s.log'):format(self.name, package_data.version)
+  local log_file = ('export-%s-%s.log'):format(self.name, self.version)
   print('--- install ' .. os.path.basename(self.aar_file) .. ' to local Maven repository')
   local args = {
     mvn_path,
@@ -286,7 +288,7 @@ function PrefabExporter:local_maven_install()
     '-Dfile=' .. self.aar_file,
     '-DgroupId=' .. self.group_id,
     '-DartifactId=' .. self.name,
-    '-Dversion=' .. package_data.version,
+    '-Dversion=' .. self.version,
     '-Dpackaging=aar',
     '-DgeneratePom=true'
   }

@@ -11,6 +11,14 @@ local CppZmq = Pkg:new {
       hash='sha256:7a23639a45f3a0049e11a188e29aaedd10b2f4845f0000cf3e22d6774ebde0af'
     }
   },
+  features={
+    draft={
+      description="Build and install draft",
+      configure_options={
+        ENABLE_DRAFTS='ON'
+      }
+    }
+  },
   buildsystem="cmake"
 }
 

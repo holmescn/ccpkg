@@ -6,11 +6,15 @@ local ConfigureMake = BuildSystem:new {
 }
 
 function ConfigureMake:init(pkg)
-  self.sh_path = os.which('sh')
-  self.make_path = os.which('make')
-  assert(self.sh_path, "shell is not found")
-  assert(self.make_path, "make is not found")
-  return self
+  local o = {}
+  setmetatable(o, self)
+  self.__index = self
+
+  o.sh_path = os.which('sh')
+  o.make_path = os.which('make')
+  assert(o.sh_path, "shell is not found")
+  assert(o.make_path, "make is not found")
+  return o
 end
 
 function ConfigureMake:create_opt(pkg, opt)
@@ -22,6 +26,11 @@ function ConfigureMake:before_configure(pkg, opt)
   local relative_to_src = os.path.relpath(pkg.src_dir, pkg.build_dir)
   opt.args:insert( 1, os.path.join(relative_to_src, "configure") )
   opt.args:append("--prefix=" .. pkg.install_dir)
+  if pkg.configure_options then
+    for option in table.each(pkg.configure_options) do
+      opt.args:append(option)
+    end
+  end
 end
 
 function ConfigureMake:configure(pkg, opt)

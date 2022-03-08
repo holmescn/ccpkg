@@ -312,7 +312,11 @@ void CrossPlatformProcess::fork_child(void)
       printf("PWD=%s\n", cwd.c_str());
       printf("%s\n", envs["PATH"].c_str());
       for (i = 0; i < args.size(); ++i) {
-        printf("%s%c", argv[i], ((i < args.size() - 1) ? ' ' : '\n'));
+        if (args[i].find(' ') == std::string::npos) {
+          printf("%s%c", argv[i], ((i < args.size() - 1) ? ' ' : '\n'));
+        } else {
+          printf("\"%s\"%c", argv[i], ((i < args.size() - 1) ? ' ' : '\n'));
+        }
       }
       printf("\n");
     }

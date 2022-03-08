@@ -32,7 +32,7 @@ local Android = Platform:new {
 }
 
 function Android:init(project)
-  if self.ndk_home then return self end
+  if self.initialized then return self end
 
   self.ndk_home = project.android.ndk_home
   self.toolchain_file = os.path.join(self.ndk_home, "build", "cmake", "android.toolchain.cmake")
@@ -50,6 +50,7 @@ function Android:init(project)
     break
   end
 
+  self.initialized = true
   return self
 end
 
@@ -69,7 +70,6 @@ end
 
 function Android:execute(step, pkg, opt)
   self[pkg.buildsystem.name](self, step, pkg, opt)
-  pkg.data.library_arch = self.data[pkg.machine].library_arch
 end
 
 function Android:cmake(step, pkg, opt)

@@ -11,6 +11,29 @@ local LibZmq = Pkg:new {
       hash='sha256:540fb721619a6aba3bdeef7d940d8e9e0e6d2c193595bc243241b77ff9e93620'
     }
   },
+  features={
+    draft={
+      description="Build and install draft APIs",
+      configure_options={
+        "--enable-drafts"
+      }
+    },
+    sodium={
+      deacription="Using libsodium for CURVE security",
+      configure_options={
+
+      },
+      dependencies={
+        "libsodium"
+      }
+    },
+    ['websockets-sha1']={
+      description="Enable WebSocket transport through builtin sha1 (libzmq#3676)",
+      configure_options={
+
+      },
+    }
+  },
   buildsystem="configure_make"
 }
 
