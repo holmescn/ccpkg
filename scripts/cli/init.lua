@@ -13,10 +13,10 @@ require("cli.install"):init(parser)
 require("cli.export"):init(parser)
 
 local args = parser:parse(ARGS)
-parser.commands[args.command]:execute(args)
+-- parser.commands[args.command]:execute(args)
 
 -- Run with stack trace
--- xpcall(parser.commands[args.command]['execute'], function(msg)
---   print(debug.traceback())
---   print(msg)
--- end, parser.commands[args.command], args)
+xpcall(parser.commands[args.command]['execute'], function(msg)
+  print(debug.traceback())
+  print(msg)
+end, parser.commands[args.command], args)
