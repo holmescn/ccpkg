@@ -1,5 +1,5 @@
-local Pkg = require "ccpkg.pkg"
-local SpdLog = Pkg:new {
+local ccpkg = require "ccpkg"
+local SpdLog = ccpkg.create_pkg {
   name="spdlog",
   description="Very fast, header only, C++ logging library",
   homepage="https://github.com/gabime/spdlog",

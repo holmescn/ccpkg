@@ -28,9 +28,9 @@ function Command:do_install(dependencies, project)
   for spec in table.each(dependencies) do
     local pkg = nil
     if type(spec) == "string" then
-      pkg = require('ports.' .. spec):init(project, {name=spec, version='latest'})
+      pkg = require('ports.' .. spec):new(project, {name=spec, version='latest'})
     else
-      pkg = require('ports.' .. spec.name):init(project, spec)
+      pkg = require('ports.' .. spec.name):new(project, spec)
     end
 
     self:do_install(pkg:dependencies(), project)

@@ -9,16 +9,14 @@ return {
     ndk_api=23
   },
   dependencies={
-    "libffi",
-    "spdlog",
     {
       name="msgpack-cxx",
       version="latest",
       configure_options={
-        MSGPACK_CXX17="ON",
-        MSGPACK_USE_BOOST="OFF",
+        MSGPACK_CXX17='ON',
+        MSGPACK_USE_BOOST='OFF'
       }
-    }
+    },
   },
   export={
     {

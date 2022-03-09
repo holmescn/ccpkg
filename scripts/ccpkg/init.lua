@@ -7,6 +7,12 @@ local ccpkg = {
   scripts_dir=os.path.join(root_dir, "scripts"),
 }
 
+function ccpkg.create_pkg(o)
+  local pkg = require("ccpkg.pkg")
+  setmetatable(o, pkg)
+  return o
+end
+
 function ccpkg:makedirs(project_dir)
   local dirs = {project_dir=project_dir}
   local root_dir = os.path.join(project_dir, ".ccpkg")

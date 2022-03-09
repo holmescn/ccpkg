@@ -1,5 +1,5 @@
-local Pkg = require "ccpkg.pkg"
-local Fmt = Pkg:new {
+local ccpkg = require "ccpkg"
+local Fmt = ccpkg.create_pkg {
   name="fmt",
   description="Formatting library for C++. It can be used as a safe alternative to printf or as a fast alternative to IOStreams.",
   homepage="https://github.com/fmtlib/fmt",

@@ -1,5 +1,5 @@
-local Pkg = require "ccpkg.pkg"
-local RapidJSON = Pkg:new {
+local ccpkg = require "ccpkg"
+local RapidJSON = ccpkg.create_pkg {
   name="rapidjson",
   description="A fast JSON parser/generator for C++ with both SAX/DOM style API.",
   homepage="http://rapidjson.org/",

@@ -1,8 +1,8 @@
 ---@diagnostic disable: undefined-field
+local ccpkg = require "ccpkg"
 local buildsystem = require "buildsystem"
 local Args = require "ccpkg.args"
-local Pkg = require "ccpkg.pkg"
-local OpenSSL = Pkg:new {
+local OpenSSL = ccpkg.create_pkg {
   name="openssl",
   description="OpenSSL is an open source project that provides a robust, commercial-grade, and full-featured toolkit for the Transport Layer Security (TLS) and Secure Sockets Layer (SSL) protocols. It is also a general-purpose cryptography library.",
   homepage="https://www.openssl.org",

@@ -1,5 +1,5 @@
-local Pkg = require "ccpkg.pkg"
-local LibZmq = Pkg:new {
+local ccpkg = require "ccpkg"
+local LibZmq = ccpkg.create_pkg {
   name="libzmq",
   description="The ZeroMQ lightweight messaging kernel is a library which extends the standard socket interfaces with features traditionally provided by specialised messaging middleware products",
   homepage="https://github.com/zeromq/libzmq",

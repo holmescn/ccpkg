@@ -1,5 +1,5 @@
-local Pkg = require "ccpkg.pkg"
-local SQLite3 = Pkg:new {
+local ccpkg = require "ccpkg"
+local SQLite3 = ccpkg.create_pkg {
   name="sqlite3",
   description="SQLite is a software library that implements a self-contained, serverless, zero-configuration, transactional SQL database engine.",
   homepage="https://sqlite.org/",

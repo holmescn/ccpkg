@@ -1,7 +1,6 @@
 ---@diagnostic disable: undefined-field
 local ccpkg = require "ccpkg"
-local Pkg = require "ccpkg.pkg"
-local MessagePack = Pkg:new {
+local MessagePack = ccpkg.create_pkg {
   name="msgpack-cxx",
   description="MessagePack is an efficient binary serialization format, which lets you exchange data among multiple languages like JSON, except that it's faster and smaller.",
   homepage="https://github.com/msgpack/msgpack-c",

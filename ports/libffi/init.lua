@@ -1,5 +1,5 @@
-local Pkg = require "ccpkg.pkg"
-local LibFfi = Pkg:new {
+local ccpkg = require "ccpkg"
+local LibFfi = ccpkg.create_pkg {
   name="libffi",
   description="Portable, high level programming interface to various calling conventions",
   homepage="https://github.com/libffi/libffi",

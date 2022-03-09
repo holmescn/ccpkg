@@ -1,30 +1,17 @@
 ---@diagnostic disable: undefined-field
 local ccpkg = require "ccpkg"
 local function search(t, key)
-  -- print(string.rep('-', 20))
-  -- print('key', key)
-  -- for k, v in pairs(t) do
-  --   print(k, type(v))
-  -- end
-
   -- follow chain
   local mt = getmetatable(t)
   if rawget(t, 'version') and mt.versions[t.version] then
     local v = mt.versions[t.version][key]
     if v then return v end
   end
-  if mt[key] then
-    return mt[key]
-  end
+  return mt[key]
 end
 local Pkg = {__index=search}
 
-function Pkg:new(o)
-  setmetatable(o, self)
-  return o
-end
-
-function Pkg:init(projeect, spec)
+function Pkg:new(projeect, spec)
   local o = {env={}}
   setmetatable(o, self)
   self.__index = search
@@ -152,23 +139,26 @@ function Pkg:makedirs()
 end
 
 function Pkg:patch_source()
-  if not rawget(self, 'patches') then return end
+  local mt = getmetatable(self)
+  if not rawget(mt, 'patches') then return end
 
-  -- common patches
-  for _, patch in ipairs(rawget(self, 'patches')) do
+  local patches = rawget(mt, 'patches')
+  for _, patch in ipairs(patches) do
     self:apply_patch(patch)
   end
 
-  -- version related patches
-  if self.versions[self.version]['patches'] then
-    for _, patch in ipairs(self.versions[self.version]['patches']) do
+  -- platform related patches
+  local platform_patches = patches[self.platform.name]
+  if platform_patches then
+    for _, patch in ipairs(platform_patches) do
       self:apply_patch(patch)
     end
   end
 
-  -- platform related patches
-  if self.patches[self.platform.name] then
-    for _, patch in ipairs(self.patches[self.platform.name]) do
+  -- version related patches
+  local version_patches = self.versions[self.version]['patches']
+  if version_patches then
+    for _, patch in ipairs(version_patches) do
       self:apply_patch(patch)
     end
   end
@@ -219,32 +209,17 @@ function Pkg:save_package()
     package_data = dofile(self.package_file)
   end
 
-  local exists_checker = table.create_filter(self.files)
+  local exists = table.create_filter(self.files)
 
   local added_files = {}
   for f in table.each(os.path.files(self.install_dir)) do
-    if not exists_checker[f] then
+    if not exists[f] then
       table.insert(added_files, f)
     end
   end
 
-  if package_data.files then
-    exists_checker = table.create_filter(package_data.files)
-    for f in table.each(added_files) do
-      if not exists_checker[f] then
-        if not package_data[self.tuplet] then
-          package_data[self.tuplet] = {}
-        end
-        table.insert(package_data[self.tuplet], f)  
-      end
-    end
-    if package_data[self.tuplet] then
-      table.sort(package_data[self.tuplet])
-    end
-  else
-    package_data.files = added_files
-    table.sort(package_data.files)
-  end
+  package_data.files = added_files
+  table.sort(package_data.files)
   self.files = added_files
 
   local package_file = io.open(self.package_file, "w+")

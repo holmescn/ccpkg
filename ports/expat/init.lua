@@ -1,5 +1,5 @@
-local Pkg = require "ccpkg.pkg"
-local Expat = Pkg:new {
+local ccpkg = require "ccpkg"
+local Expat = ccpkg.create_pkg {
   name="expat",
   description="XML parser library written in C",
   homepage="https://github.com/libexpat/libexpat",

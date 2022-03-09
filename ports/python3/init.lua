@@ -1,7 +1,6 @@
 ---@diagnostic disable: undefined-field
 local ccpkg = require "ccpkg"
-local Pkg = require "ccpkg.pkg"
-local Python3 = Pkg:new {
+local Python3 = ccpkg.create_pkg {
   name="python3",
   description="The Python programming language",
   homepage="https://github.com/python/cpython",

@@ -1,5 +1,5 @@
-local Pkg = require "ccpkg.pkg"
-local LibLzma = Pkg:new {
+local ccpkg = require "ccpkg"
+local LibLzma = ccpkg.create_pkg {
   name="liblzma",
   description="Compression library with an API similar to that of zlib.",
   homepage="hhttps://github.com/xz-mirror/xz",

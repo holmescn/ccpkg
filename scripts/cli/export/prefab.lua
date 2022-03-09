@@ -27,8 +27,8 @@ end
 function PrefabExporter:execute(project, spec)
   self.project = project
   self.platform = require('platform.android'):init(project)
-  spec.min_sdk = spec.min_sdk or 21
-  spec.target_sdk = spec.target_sdk or 31
+  spec.min_sdk = spec.min_sdk or 16
+  spec.target_sdk = spec.target_sdk or self.platform.ndk_api
   spec.ndk_api = spec.ndk_api or self.platform.ndk_api
   spec.group_id = spec.group_id or 'org.ccpkg.ndk.support'
   spec.artifact_id = spec.artifact_id or spec.name

@@ -1,5 +1,5 @@
-local Pkg = require "ccpkg.pkg"
-local CppZmq = Pkg:new {
+local ccpkg = require "ccpkg"
+local CppZmq = ccpkg.create_pkg {
   name="cppzmq",
   description="lightweight messaging kernel, C++ bindings.",
   homepage="https://github.com/zeromq/cppzmq",
