@@ -1,9 +1,9 @@
 local Args = {}
-Args.__index = Args
 
 function Args:new(o)
   o = o or {}
   setmetatable(o, self)
+  self.__index = self
   return o
 end
 
@@ -11,19 +11,45 @@ function Args:insert(...)
   table.insert(self, ...)
 end
 
-function Args:append(...)
-  local n = select('#', ...)
-  for i = 1, n do
-    table.insert(self, select(i, ...))
+function Args:contains(opt)
+  for _, v in ipairs(self) do
+    if v == opt then
+      return true
+    end
   end
-  return self
+  return false
 end
 
-function Args:extend(t)
-  for v in table.each(t) do
-    table.insert(self, v)
+function Args:add(opt)
+  if not self:contains(opt) then
+    table.insert(self, opt)
   end
-  return self
+end
+
+function Args:remove(opt)
+  local index = nil
+  for i, v in ipairs(self) do
+    if v == opt then
+      index = i
+      break
+    end
+  end
+  if index then
+    table.remove(self, index)
+  end
+end
+
+function Args:remove_with_prefix(prefix)
+  local index = nil
+  for i, v in ipairs(self) do
+    if v:startswith(prefix) then
+      index = i
+      break
+    end
+  end
+  if index then
+    table.remove(self, index)
+  end
 end
 
 return Args

@@ -1,6 +1,5 @@
 return {
   tuplets={
-    "x64-linux",
     "arm-android",
     "arm64-android", "x86-android", "x64-android"
   },
@@ -9,12 +8,23 @@ return {
     ndk_api=23
   },
   dependencies={
+    "lz4",
+    "libffi",
     {
-      name="msgpack-cxx",
+      name="rocksdb",
       version="latest",
       configure_options={
-        MSGPACK_CXX17='ON',
-        MSGPACK_USE_BOOST='OFF'
+        ROCKSDB_LITE="ON",
+        WITH_GFLAGS="OFF",
+        WITH_LIBURING="OFF",
+        WITH_IOSTATS_CONTEXT="OFF",
+        WITH_PERF_CONTEXT="OFF",
+        WITH_BENCHMARK_TOOLS="OFF",
+        WITH_TESTS="OFF",
+        WITH_ALL_TESTS="OFF",
+        WITH_TOOLS="OFF",
+        WITH_CORE_TOOLS="OFF",
+        WITH_LZ4="ON",
       }
     },
   },

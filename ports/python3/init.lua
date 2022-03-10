@@ -28,11 +28,9 @@ function Python3:dependencies()
 end
 
 function Python3:before_configure(opt)
-  opt.args:append("--build=x86_64-pc-linux-gnux32")
-  opt.args:append("--enable-shared")
-  opt.args:append("--disable-ipv6")
-  opt.args:append("CFLAGS=-I" .. os.path.join(self.install_dir, "include"))
-  opt.args:append("CONFIG_SITE=" .. os.path.join(self.build_dir, "config.site"))
+  opt.args:add("--build=x86_64-pc-linux-gnux32")
+  opt.args:add("CFLAGS=-I" .. os.path.join(self.install_dir, "include"))
+  opt.args:add("CONFIG_SITE=" .. os.path.join(self.build_dir, "config.site"))
 
   local config_site_file = io.open(os.path.join(self.build_dir, "config.site"), "w+")
   config_site_file:write("ac_cv_file__dev_ptc=no\n")

@@ -13,17 +13,6 @@ function PrefabExporter:init(parser)
   return self
 end
 
-function PrefabExporter:load_package(name)
-  local packages_dir = self.project.dirs.packages
-  for f in os.listdir(packages_dir) do
-    if f:startswith(name) then
-      local package_file = os.path.join(packages_dir, f)
-      return dofile(package_file)
-    end
-  end
-  print('--- ' .. name .. ' is not installed')
-end
-
 function PrefabExporter:execute(project, spec)
   self.project = project
   self.platform = require('platform.android'):init(project)
@@ -34,7 +23,7 @@ function PrefabExporter:execute(project, spec)
   spec.artifact_id = spec.artifact_id or spec.name
   self.spec = spec
   if not spec.version then
-    local package_data = self:load_package(spec.name)
+    local package_data = ccpkg.load_pkg(project.dirs.packages, spec.name)
     spec.version = package_data.version
   end
 
@@ -55,7 +44,7 @@ function PrefabExporter:execute(project, spec)
   os.mkdirs(spec.prefab_dir)
 
   for mod in table.each(spec.modules) do
-    local module_data = self:load_package(mod)
+    local module_data = ccpkg.load_pkg(project.dirs.packages, mod)
     assert(module_data, mod .. ' is not installed')
   
     local module_name = mod
@@ -88,7 +77,7 @@ function PrefabExporter:copy_module_files(files, module_dir)
       files=files,
       module_files=module_files
     }
-    self:copy_abi_files(vars, files, module_files)
+    self:copy_abi_files(vars)
   end
   return module_files
 end

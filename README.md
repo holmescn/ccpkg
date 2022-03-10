@@ -9,4 +9,5 @@
 3. Create Organization on GitHub
   1. Fork and Make PR for any libraries
   2. Mirror non-Github based libraries
+4. add `default_options` for each platform
 

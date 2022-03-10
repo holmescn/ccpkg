@@ -21,11 +21,11 @@ function OpenSSL:configure(opt)
   -- use perl instead of sh
   local args = Args:new {perl_path}
   local configure_script = opt.args[1]:gsub("configure", "Configure")
-  args:append(configure_script)
-  args:append('--prefix=' .. self.install_dir)
+  args:add(configure_script)
+  args:add('--prefix=' .. self.install_dir)
 
   if self.platform.name == "android" then
-    args:append("-D__ANDROID_API__=" .. self.platform.ndk_api)
+    args:add("-D__ANDROID_API__=" .. self.platform.ndk_api)
     local arch_map = {
       arm='android-arm',
       arm64='android-arm64',
@@ -33,7 +33,7 @@ function OpenSSL:configure(opt)
       x64='android-x86_64',
     }
     if arch_map[self.machine] then
-      args:append(arch_map[self.machine])
+      args:add(arch_map[self.machine])
     else
       error("unsupported android arch: " .. self.machine)
     end

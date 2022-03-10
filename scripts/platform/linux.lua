@@ -43,7 +43,7 @@ end
 
 function Linux:configure_make(step, pkg, opt)
   if step == "configure" then
-    opt.args:append('--host=' .. self.data[pkg.machine].host)
+    opt.args:add('--host=' .. self.data[pkg.machine].host)
   end
 end
 

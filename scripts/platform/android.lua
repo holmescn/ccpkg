@@ -94,7 +94,7 @@ function Android:configure_make(step, pkg, opt)
     opt.env["RANLIB"] = "llvm-ranlib"
     opt.env["OBJDUMP"] = "llvm-objdump"
     opt.env["READELF"] = "llvm-readelf"
-    opt.args:append("--host=" .. self.data[pkg.machine].host)
+    opt.args:add("--host=" .. self.data[pkg.machine].host)
   end
   table.insert(opt.env["PATH"], 1, os.path.join(self.llvm_path, "bin"))
 end

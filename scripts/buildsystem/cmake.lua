@@ -35,14 +35,14 @@ end
 function CMake:configure(pkg, opt)
   opt.args = Args:new {self.cmake_path}
   for k, v in table.sorted_pairs(opt.options) do
-    opt.args:append("-D" .. k .. "=" .. v)
+    opt.args:add("-D" .. k .. "=" .. v)
   end
 
   if self.ninja_path then
-    opt.args:append("-GNinja")
+    opt.args:add("-GNinja")
   end
 
-  opt.args:append(os.path.relpath(pkg.src_dir, pkg.build_dir))
+  opt.args:add(os.path.relpath(pkg.src_dir, pkg.build_dir))
 
   BuildSystem['configure'](self, pkg, opt)
 end

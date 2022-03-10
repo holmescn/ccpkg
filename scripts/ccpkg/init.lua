@@ -13,6 +13,20 @@ function ccpkg.create_pkg(o)
   return o
 end
 
+function ccpkg.load_pkg(packages_dir, name)
+  local full_path = os.path.join(packages_dir, name .. '.lua')
+  if os.path.exists(full_path) then
+    return dofile(full_path)
+  end
+
+  for f in os.listdir(packages_dir) do
+    if f:startswith(name) then
+      full_path = os.path.join(packages_dir, f)
+      return dofile(full_path)
+    end
+  end
+end
+
 function ccpkg:makedirs(project_dir)
   local dirs = {project_dir=project_dir}
   local root_dir = os.path.join(project_dir, ".ccpkg")

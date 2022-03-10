@@ -1,0 +1,60 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 3a87288..f646133 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -1032,6 +1032,8 @@ else()
+   set(SYSTEM_LIBS ${CMAKE_THREAD_LIBS_INIT})
+ endif()
+ 
++string(REPLACE "-march=native" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
++
+ add_library(${ROCKSDB_STATIC_LIB} STATIC ${SOURCES} ${BUILD_VERSION_CC})
+ target_link_libraries(${ROCKSDB_STATIC_LIB} PRIVATE
+   ${THIRDPARTY_LIBS} ${SYSTEM_LIBS})
+diff --git a/env/io_posix.cc b/env/io_posix.cc
+index 56494d5..e15d7f7 100644
+--- a/env/io_posix.cc
++++ b/env/io_posix.cc
+@@ -1304,16 +1304,18 @@ IOStatus PosixWritableFile::Close(const IOOptions& /*opts*/,
+     int result = fstat(fd_, &file_stats);
+     // After ftruncate, we check whether ftruncate has the correct behavior.
+     // If not, we should hack it with FALLOC_FL_PUNCH_HOLE
++#pragma clang diagnostic push
++#pragma clang diagnostic ignored "-Wsign-compare"
+     if (result == 0 &&
+-        (file_stats.st_size + file_stats.st_blksize - 1) /
+-                file_stats.st_blksize !=
+-            file_stats.st_blocks / (file_stats.st_blksize / 512)) {
++        ((file_stats.st_size + file_stats.st_blksize - 1) / file_stats.st_blksize)
++      != (file_stats.st_blocks / (file_stats.st_blksize / 512))) {
+       IOSTATS_TIMER_GUARD(allocate_nanos);
+       if (allow_fallocate_) {
+         fallocate(fd_, FALLOC_FL_KEEP_SIZE | FALLOC_FL_PUNCH_HOLE, filesize_,
+                   block_size * last_allocated_block - filesize_);
+       }
+     }
++#pragma clang diagnostic pop
+ #endif
+   }
+ 
+diff --git a/monitoring/instrumented_mutex.h b/monitoring/instrumented_mutex.h
+index 1e72815..40993ba 100644
+--- a/monitoring/instrumented_mutex.h
++++ b/monitoring/instrumented_mutex.h
+@@ -15,6 +15,9 @@
+ namespace ROCKSDB_NAMESPACE {
+ class InstrumentedCondVar;
+ 
++#pragma clang diagnostic push
++#pragma clang diagnostic ignored "-Wunused-private-field"
++
+ // A wrapper class for port::Mutex that provides additional layer
+ // for collecting stats and instrumentation.
+ class InstrumentedMutex {
+@@ -113,4 +116,6 @@ class InstrumentedCondVar {
+   int stats_code_;
+ };
+ 
++#pragma clang diagnostic push
++
+ }  // namespace ROCKSDB_NAMESPACE

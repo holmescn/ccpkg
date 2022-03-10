@@ -25,10 +25,10 @@ end
 function ConfigureMake:before_configure(pkg, opt)
   local relative_to_src = os.path.relpath(pkg.src_dir, pkg.build_dir)
   opt.args:insert( 1, os.path.join(relative_to_src, "configure") )
-  opt.args:append("--prefix=" .. pkg.install_dir)
+  opt.args:add("--prefix=" .. pkg.install_dir)
   if pkg.configure_options then
     for option in table.each(pkg.configure_options) do
-      opt.args:append(option)
+      opt.args:add(option)
     end
   end
 end
