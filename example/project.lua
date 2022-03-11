@@ -8,8 +8,16 @@ return {
     ndk_api=23
   },
   dependencies={
+    {
+      name="pybind11",
+      version="latest",
+      configure_options={
+        PYBIND11_TEST="OFF",
+        PYBIND11_INSTALL="ON",
+        PYBIND11_NOPYTHON="ON",
+      }
+    },
     "lz4",
-    "libffi",
     {
       name="rocksdb",
       version="latest",
