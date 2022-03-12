@@ -18,7 +18,9 @@ function CMake:init(pkg)
 end
 
 function CMake:create_opt(pkg, opt)
-  opt.options = {}
+  opt.options = {
+    CMAKE_BUILD_TYPE="Release"
+  }
   return opt
 end
 
@@ -49,15 +51,14 @@ end
 
 function CMake:before_build(pkg, opt)
   opt.args = Args:new {
-    self.cmake_path, "--build", ".", "--config", "Release"
+    self.cmake_path, "--build", "."
   }
 end
 
 function CMake:before_install(pkg, opt)
   opt.args = Args:new {
     self.cmake_path, "--install", ".",
-    "--prefix", pkg.install_dir,
-    "--config", "Release"
+    "--prefix", pkg.install_dir
   }
 end
 

@@ -1,0 +1,13 @@
+diff --git a/setup.py b/setup.py
+index 43e807f..11f7f17 100644
+--- a/setup.py
++++ b/setup.py
+@@ -1781,7 +1781,7 @@ class PyBuildExt(build_ext):
+             extra_compile_args = []
+             # bpo-44394: libexpat uses isnan() of math.h and needs linkage
+             # against the libm
+-            expat_lib = ['m']
++            expat_lib = ['m', 'expat']
+             expat_sources = ['expat/xmlparse.c',
+                              'expat/xmlrole.c',
+                              'expat/xmltok.c']

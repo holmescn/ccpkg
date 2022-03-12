@@ -38,6 +38,19 @@ function OpenSSL:configure(opt)
       error("unsupported android arch: " .. self.machine)
     end
   end
+  if self.platform.name == "linux" then
+    local arch_map = {
+      arm='linux-arm',
+      arm64='linux-arm64',
+      x86='linux-x86',
+      x64='linux-x86_64',
+    }
+    if arch_map[self.machine] then
+      args:add(arch_map[self.machine])
+    else
+      error("unsupported linux arch: " .. self.machine)
+    end
+  end
   opt.args = args
   buildsystem:execute('configure', self, opt)
 end

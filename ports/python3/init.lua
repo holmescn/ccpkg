@@ -13,8 +13,11 @@ local Python3 = ccpkg.create_pkg {
   },
   patches={
     android={
-      '0001-fix-android-cross-compiling-standard-libraries.patch'
-    }
+      '0001-fix-android.patch'
+    },
+    linux={
+      '0002-fix-linux.patch'
+    },
   },
   buildsystem="configure_make"
 }
@@ -28,7 +31,7 @@ function Python3:dependencies()
 end
 
 function Python3:before_configure(opt)
-  opt.args:add("--build=x86_64-pc-linux-gnux32")
+  opt.args:add("--build=x86_64-pc-linux-gnu")
   opt.args:add("CFLAGS=-I" .. os.path.join(self.install_dir, "include"))
   opt.args:add("CONFIG_SITE=" .. os.path.join(self.build_dir, "config.site"))
 

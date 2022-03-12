@@ -33,15 +33,12 @@ function Download:url(pkg, url)
   end
 
   local cmd = nil
-  local axel_path = os.which("axel")
   local curl_path = os.which("curl")
   local wget_path = os.which("wget")
-  if axel_path then
-    cmd = ("%s --search=4 --num-connections=4 --output=%s %s"):format(axel_path, full_path, url)
-  elseif wget_path then
-    cmd = ("%s --continue --tries=3 --output-file=%s %s"):format(wget_path, full_path, url)
+  if wget_path then
+    cmd = ("%s --continue --tries=3 --output-document=%s %s"):format(wget_path, full_path, url)
   elseif curl_path then
-    cmd = ("%s --retry 3 --parallel --output %s %s"):format(curl_path, full_path, url)
+    cmd = ("%s --retry 3 --output %s %s"):format(curl_path, full_path, url)
   else
     error("no download program found, support: axel, wget and curl")
   end
